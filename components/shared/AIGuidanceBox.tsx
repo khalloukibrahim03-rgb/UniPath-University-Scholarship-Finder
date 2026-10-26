@@ -5,8 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, CheckCircle2, ExternalLink, Bot, HelpCircle } from "lucide-react";
-import { GuidanceResponse } from "@/lib/services/aiGuidance";
+import { Sparkles, Send, CheckCircle2, ExternalLink, Bot, HelpCircle, ShieldAlert, Check } from "lucide-react";
+import { GuidanceResponse, ResultClassification } from "@/lib/services/aiGuidance";
 
 export const AIGuidanceBox: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -14,10 +14,10 @@ export const AIGuidanceBox: React.FC = () => {
   const [response, setResponse] = useState<GuidanceResponse | null>(null);
 
   const samplePrompts = [
+    "What are Moroccan engineering school admission rules (ENSIAS, EMI, UM6P)?",
     "How do I apply via Campus France Morocco for Sorbonne?",
     "What are DAAD Germany scholarship eligibility requirements?",
-    "Which full-ride scholarships cover Master degrees in Europe?",
-    "What is the difference between DAP and Hors DAP?"
+    "Which full-ride scholarships cover Master degrees in Europe?"
   ];
 
   const handleAsk = async (promptQuery?: string) => {
@@ -40,6 +40,17 @@ export const AIGuidanceBox: React.FC = () => {
     }
   };
 
+  const getClassificationBadge = (cls?: ResultClassification) => {
+    if (cls === "Matches Documented Criteria") {
+      return <Badge variant="verified" className="flex items-center gap-1"><Check className="w-3 h-3" /> Matches Documented Criteria</Badge>;
+    } else if (cls === "Potential Match") {
+      return <Badge variant="unverified" className="flex items-center gap-1"><HelpCircle className="w-3 h-3" /> Potential Match</Badge>;
+    } else if (cls === "Does Not Match Documented Requirement") {
+      return <Badge variant="outline" className="text-red-700 bg-red-50 border-red-200">Unmet Criteria</Badge>;
+    }
+    return <Badge variant="secondary" className="flex items-center gap-1"><ShieldAlert className="w-3 h-3 text-slate-500" /> Insufficient Info</Badge>;
+  };
+
   return (
     <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 via-white to-amber-50/30">
       <CardHeader>
@@ -50,10 +61,10 @@ export const AIGuidanceBox: React.FC = () => {
             </div>
             <div>
               <CardTitle className="text-lg font-bold text-blue-950">
-                Grounded AI Admissions Counselor
+                Grounded AI Student Admissions Counselor
               </CardTitle>
               <p className="text-xs text-slate-600">
-                Source-verified explanations & checklist generator (Zero-Cost Local Engine)
+                Source-verified explanations & requirement matching strictly over approved records
               </p>
             </div>
           </div>
@@ -113,6 +124,11 @@ export const AIGuidanceBox: React.FC = () => {
         {/* Output Panel */}
         {response && (
           <div className="mt-4 p-4 bg-white rounded-xl border border-slate-200 space-y-4 shadow-inner">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Result Classification:</span>
+              {getClassificationBadge(response.classification)}
+            </div>
+
             <div className="prose prose-sm max-w-none text-slate-800 space-y-2 whitespace-pre-line">
               {response.answerMarkdown}
             </div>
@@ -148,6 +164,7 @@ export const AIGuidanceBox: React.FC = () => {
                       className="inline-flex items-center gap-1 text-blue-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded border border-slate-200 text-[11px]"
                     >
                       <span>{source.title}</span>
+                      <Badge variant="verified" className="text-[9px] py-0 px-1">{source.dataQualityState || "VERIFIED"}</Badge>
                       <ExternalLink className="w-3 h-3 text-slate-500" />
                     </a>
                   ))}

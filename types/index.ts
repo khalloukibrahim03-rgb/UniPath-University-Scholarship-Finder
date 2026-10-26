@@ -1,3 +1,19 @@
+export type DataQualityState =
+  | 'DISCOVERED'
+  | 'UNVERIFIED'
+  | 'PARTIALLY_VERIFIED'
+  | 'VERIFIED'
+  | 'OUTDATED'
+  | 'CONFLICTED'
+  | 'REJECTED'
+  | 'DEMO_ONLY';
+
+export type ReviewStatus = 'pending_review' | 'approved' | 'rejected' | 'draft' | 'deferred';
+
+export type ResearchTaskStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+
+export type SourceType = 'official_website' | 'government_portal' | 'admissions_portal' | 'third_party';
+
 export type VerificationStatus = 'verified' | 'unverified' | 'needs_review';
 
 export type DegreeLevel = 'Bachelor' | 'Master' | 'Doctorate' | 'Certificate' | 'Diploma';
@@ -5,6 +21,70 @@ export type DegreeLevel = 'Bachelor' | 'Master' | 'Doctorate' | 'Certificate' | 
 export type ScholarshipCoverage = 'Full Ride' | 'Full Tuition' | 'Partial Tuition' | 'Living Stipend';
 
 export type ApplicationStatus = 'Saved' | 'Preparing Docs' | 'Submitted' | 'Interview Scheduled' | 'Accepted' | 'Rejected';
+
+export interface ClaimEvidence {
+  id: string;
+  proposedRecordId?: string;
+  entityType: 'university' | 'program' | 'scholarship';
+  entityId?: string;
+  fieldName: string;
+  claimValue: string;
+  sourceUrl: string;
+  sourceTitle: string;
+  sourceType: SourceType;
+  evidenceExcerpt: string;
+  academicCycle: string;
+  verificationStatus: DataQualityState;
+  verifiedAt: string;
+}
+
+export interface ProposedRecord {
+  id: string;
+  taskId?: string;
+  entityType: 'university' | 'program' | 'scholarship';
+  existingEntityId?: string;
+  proposedData: Record<string, any>;
+  verificationStatus: DataQualityState;
+  reviewStatus: ReviewStatus;
+  rejectionReason?: string;
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  claimEvidences: ClaimEvidence[];
+}
+
+export interface ResearchTask {
+  id: string;
+  instruction: string;
+  taskType: string;
+  status: ResearchTaskStatus;
+  targetInstitution?: string;
+  targetCountry: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+  logs?: ResearchTaskLog[];
+  proposedRecords?: ProposedRecord[];
+}
+
+export interface ResearchTaskLog {
+  id: string;
+  taskId: string;
+  logLevel: 'info' | 'warn' | 'error' | 'debug';
+  message: string;
+  metadata?: Record<string, any>;
+  timestamp: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  adminUserId?: string;
+  actionType: string;
+  targetEntityType: string;
+  targetEntityId?: string;
+  changesDiff: Record<string, any>;
+  timestamp: string;
+}
 
 export interface University {
   id: string;
@@ -19,10 +99,12 @@ export interface University {
   rankingGlobal?: number;
   isPublic: boolean;
   verificationStatus: VerificationStatus;
+  dataQualityState?: DataQualityState;
   verifiedAt: string;
   sourceUrl: string;
   programsCount?: number;
   featuredPrograms?: AcademicProgram[];
+  claimEvidences?: ClaimEvidence[];
 }
 
 export interface AcademicProgram {
@@ -39,10 +121,13 @@ export interface AcademicProgram {
   currency: string;
   applicationOpenDate?: string;
   applicationDeadline?: string;
+  academicCycle?: string;
   verificationStatus: VerificationStatus;
+  dataQualityState?: DataQualityState;
   verifiedAt: string;
   sourceUrl: string;
   requirements?: AdmissionRequirement[];
+  claimEvidences?: ClaimEvidence[];
 }
 
 export interface AdmissionRequirement {
@@ -68,12 +153,15 @@ export interface Scholarship {
   currency: string;
   eligibleDegrees: DegreeLevel[];
   applicationDeadline: string;
+  academicCycle?: string;
   applicationUrl: string;
   verificationStatus: VerificationStatus;
+  dataQualityState?: DataQualityState;
   verifiedAt: string;
   sourceUrl: string;
   description: string;
   requirementsList: string[];
+  claimEvidences?: ClaimEvidence[];
 }
 
 export interface ApplicationTask {

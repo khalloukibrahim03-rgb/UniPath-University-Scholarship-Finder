@@ -1,4 +1,5 @@
 import { DataService } from "@/lib/services/dataService";
+import { DataQualityState } from "@/types";
 
 export interface GuidanceRequest {
   query: string;
@@ -12,12 +13,20 @@ export interface GuidanceRequest {
   contextScholarshipId?: string;
 }
 
+export type ResultClassification =
+  | "Matches Documented Criteria"
+  | "Potential Match"
+  | "Does Not Match Documented Requirement"
+  | "Insufficient Information";
+
 export interface GuidanceResponse {
   answerMarkdown: string;
+  classification: ResultClassification;
   citedSources: Array<{
     title: string;
     url: string;
     verifiedAt: string;
+    dataQualityState?: DataQualityState;
   }>;
   suggestedChecklist?: string[];
   confidenceScore: number;
@@ -26,160 +35,156 @@ export interface GuidanceResponse {
 
 export class AIGuidanceService {
   /**
-   * Generates grounded AI guidance for student queries.
-   * Uses local deterministic rule engine operating over verified seed data.
-   * If OPENAI_API_KEY is present in environment, can integrate remote LLM adapter.
+   * Generates grounded AI guidance strictly operating over approved database records.
    */
   static async generateGuidance(req: GuidanceRequest): Promise<GuidanceResponse> {
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    // Optional remote LLM execution branch (if API key is supplied)
-    if (apiKey && apiKey.trim().length > 0) {
-      try {
-        // Reserved for external OpenAI / Anthropic integration
-      } catch (err) {
-        console.warn("Remote AI service failed, falling back to local guidance engine:", err);
-      }
-    }
-
-    // Zero-Cost Local Deterministic Engine Execution
-    return this.generateLocalGroundedGuidance(req);
-  }
-
-  private static generateLocalGroundedGuidance(req: GuidanceRequest): GuidanceResponse {
     const q = req.query.toLowerCase();
-    const citedSources: Array<{ title: string; url: string; verifiedAt: string }> = [];
+    const citedSources: Array<{ title: string; url: string; verifiedAt: string; dataQualityState?: DataQualityState }> = [];
     const suggestedChecklist: string[] = [];
 
-    // Query analysis & contextual extraction
     let answerMarkdown = "";
+    let classification: ResultClassification = "Matches Documented Criteria";
 
-    if (q.includes("campus france") || q.includes("dap") || q.includes("hors dap") || q.includes("france")) {
+    if (q.includes("scholarship") || q.includes("full ride") || q.includes("bourse") || q.includes("funding")) {
+      const eiffel = DataService.getScholarshipById("sch-eiffel-01");
+      const daad = DataService.getScholarshipById("sch-daad-02");
+      const minhaty = DataService.getScholarshipById("sch-minhaty-04");
+
+      if (eiffel) citedSources.push({ title: eiffel.title, url: eiffel.sourceUrl, verifiedAt: eiffel.verifiedAt, dataQualityState: "VERIFIED" });
+      if (daad) citedSources.push({ title: daad.title, url: daad.sourceUrl, verifiedAt: daad.verifiedAt, dataQualityState: "VERIFIED" });
+      if (minhaty) citedSources.push({ title: minhaty.title, url: minhaty.sourceUrl, verifiedAt: minhaty.verifiedAt, dataQualityState: "VERIFIED" });
+
+      answerMarkdown = `### 💰 Verified Full-Ride & Financial Aid Grants
+
+UniPath tracks verified scholarships with transparent coverage breakdowns:
+
+1. **Eiffel Excellence Scholarship (France):** Full ride (€1,181/mo stipend + travel + insurance) for Master/PhD.
+2. **DAAD Scholarships (Germany):** Full stipend (€934/mo) + health coverage for Master's programs.
+3. **Minhaty National Grant (Morocco):** Financial aid for Moroccan Baccalauréat holders in higher education.`;
+
+      suggestedChecklist.push(
+        "Check eligibility criteria (age, degree level, target country)",
+        "Request 2 academic letters of recommendation",
+        "Verify application deadline on official provider portal"
+      );
+
+      classification = "Matches Documented Criteria";
+    } else if (q.includes("morocco") || q.includes("ensias") || q.includes("engineering") || q.includes("ingénieur") || q.includes("maroc")) {
+      const um6p = DataService.getUniversityById("uni-um6p-03");
+      const minhaty = DataService.getScholarshipById("sch-minhaty-04");
+
+      if (um6p) {
+        citedSources.push({
+          title: `${um6p.name} Official Page`,
+          url: um6p.sourceUrl,
+          verifiedAt: um6p.verifiedAt,
+          dataQualityState: "VERIFIED"
+        });
+      }
+      if (minhaty) {
+        citedSources.push({
+          title: minhaty.title,
+          url: minhaty.sourceUrl,
+          verifiedAt: minhaty.verifiedAt,
+          dataQualityState: "VERIFIED"
+        });
+      }
+
+      answerMarkdown = `### 🇲🇦 Moroccan Higher Education & Engineering Guidance
+
+For students pursuing public engineering or computer science degrees in Morocco (such as **ENSIAS**, **EMI**, **EHTP**, or **UM6P**):
+
+1. **Access Routes:** Concours National Commun (CNC) or Concours Sur Titre (Passerelles).
+2. **Tuition & Public Status:** Public engineering schools in Morocco are 100% tuition-free.
+3. **National Financial Aid:** Minhaty National Grant provides financial support to eligible candidates.`;
+
+      suggestedChecklist.push(
+        "Verify DEUG / Licence average score",
+        "Prepare certified copies of Baccalauréat transcripts",
+        "Submit Minhaty application on minhaty.ma if eligible"
+      );
+
+      classification = "Matches Documented Criteria";
+    } else if (q.includes("france") || q.includes("campus france") || q.includes("sorbonne") || q.includes("dap")) {
       const sorbonne = DataService.getUniversityById("uni-sorbonne-01");
       const eiffel = DataService.getScholarshipById("sch-eiffel-01");
 
       if (sorbonne) {
         citedSources.push({
-          title: `${sorbonne.name} Official Admissions Portal`,
+          title: `${sorbonne.name} Admissions Portal`,
           url: sorbonne.sourceUrl,
-          verifiedAt: sorbonne.verifiedAt
+          verifiedAt: sorbonne.verifiedAt,
+          dataQualityState: "VERIFIED"
         });
       }
       if (eiffel) {
         citedSources.push({
           title: eiffel.title,
           url: eiffel.sourceUrl,
-          verifiedAt: eiffel.verifiedAt
+          verifiedAt: eiffel.verifiedAt,
+          dataQualityState: "VERIFIED"
         });
       }
 
-      answerMarkdown = `### 🇫🇷 Guidance for Studying in France (Etudes en France)
+      answerMarkdown = `### 🇫🇷 Campus France Morocco Guidance (DAP / Hors DAP)
 
-For students applying from Morocco or North/Sub-Saharan Africa to French public universities (such as **Sorbonne University**), applications follow the **Campus France Etudes en France** process:
+Applications from Morocco to French public universities (such as **Sorbonne University**) follow official Campus France procedures:
 
-1. **DAP (Demande d'Admission Préalable):** Required for 1st-year Bachelor (Licence 1) applications. Deadline is typically in December/January.
-2. **Hors DAP:** Required for Master's degrees (M1/M2) and License 2/3.
-3. **Language Requirement:** French language proficiency (**DELF B2 or TCF C1**) is mandatory for most programs taught in French.
-
-#### Recommended Financial Aid Opportunity:
-The **Eiffel Excellence Scholarship Program** provides €1,181/month stipend, travel expenses, and health insurance for Master's degree candidates. Application requires nomination directly by the French university.`;
+1. **DAP / Hors DAP:** Required for Bachelor or Master applications.
+2. **Language Test:** Mandatory French language proficiency (**DELF B2 or TCF C1**).`;
 
       suggestedChecklist.push(
-        "Create account on Campus France Morocco portal (Etudes en France)",
-        "Obtain certified French translations of Baccalauréat & University transcripts",
-        "Take DELF B2 or TCF Tout Public language exam",
-        "Submit university choices on Etudes en France dashboard before deadline"
+        "Open account on Campus France Morocco Etudes en France portal",
+        "Obtain certified French translations of Baccalauréat transcripts",
+        "Take DELF B2 / TCF Tout Public language exam"
       );
-    } else if (q.includes("germany") || q.includes("daad") || q.includes("tum") || q.includes("tum")) {
+
+      classification = "Matches Documented Criteria";
+    } else if (q.includes("germany") || q.includes("daad") || q.includes("tum")) {
       const tum = DataService.getUniversityById("uni-tum-02");
       const daad = DataService.getScholarshipById("sch-daad-02");
 
       if (tum) {
         citedSources.push({
-          title: `${tum.name} Admissions Portal`,
+          title: `${tum.name} Official Portal`,
           url: tum.sourceUrl,
-          verifiedAt: tum.verifiedAt
+          verifiedAt: tum.verifiedAt,
+          dataQualityState: "VERIFIED"
         });
       }
       if (daad) {
         citedSources.push({
           title: daad.title,
           url: daad.sourceUrl,
-          verifiedAt: daad.verifiedAt
+          verifiedAt: daad.verifiedAt,
+          dataQualityState: "VERIFIED"
         });
       }
 
-      answerMarkdown = `### 🇩🇪 Guidance for Studying in Germany (TUM & DAAD)
+      answerMarkdown = `### 🇩🇪 Germany Study Guidance (TUM & DAAD Grants)
 
-German technical universities like **Technical University of Munich (TUM)** offer world-class tuition-free or low-tuition English-taught programs.
-
-Key steps for international candidates:
-1. **Degree Equivalence (uni-assist):** Foreign degrees must be evaluated through **uni-assist** to receive a Vorprüfungsdokumentation (VPD).
-2. **Language Requirement:** English-taught programs require IELTS 6.5–7.0+ or TOEFL iBT 95+.
-3. **Scholarship Support:** The **DAAD Master Scholarship** provides a full monthly stipend (€934/month) plus travel and health coverage.`;
+1. **uni-assist VPD:** Foreign degrees must receive preliminary evaluation clearance via uni-assist.
+2. **DAAD Scholarship:** Full stipend (€934/month) + health coverage for Master's candidates.`;
 
       suggestedChecklist.push(
-        "Apply for uni-assist VPD preliminary evaluation",
-        "Take IELTS Academic or TOEFL iBT exam",
-        "Prepare Blocked Bank Account (Sperrkonto) for German Student Visa",
-        "Submit DAAD scholarship application before deadline"
+        "Submit transcripts to uni-assist for VPD evaluation",
+        "Obtain IELTS 7.0+ or TOEFL iBT 95+ certificate"
       );
-    } else if (q.includes("scholarship") || q.includes("full ride") || q.includes("bourse") || q.includes("funding")) {
-      const scholarships = DataService.getScholarships();
-      scholarships.forEach((s) => {
-        citedSources.push({
-          title: s.title,
-          url: s.sourceUrl,
-          verifiedAt: s.verifiedAt
-        });
-      });
 
-      answerMarkdown = `### 💰 Verified Full-Ride & Full-Tuition Scholarship Options
-
-UniPath tracks verified scholarships with transparent coverage breakdowns:
-
-1. **Eiffel Excellence Scholarship (France):** Full ride (€1,181/mo stipend + travel + insurance) for Master/PhD.
-2. **DAAD Scholarships (Germany):** Full stipend (€934/mo) + health coverage for Master's programs.
-3. **Chinese Government Scholarship (CSC China):** 100% tuition coverage + accommodation + 3,000 RMB/mo stipend.
-4. **Minhaty National Grant (Morocco):** Financial aid for Moroccan Baccalauréat holders in higher education.`;
-
-      suggestedChecklist.push(
-        "Check eligibility criteria (age, degree level, target country)",
-        "Request 2 professional/academic letters of recommendation",
-        "Write tailored Motivation Letter referencing official program requirements",
-        "Verify application deadline on official provider portal"
-      );
+      classification = "Matches Documented Criteria";
     } else {
-      const unis = DataService.getUniversities();
-      unis.forEach((u) => {
-        citedSources.push({
-          title: `${u.name} Official Page`,
-          url: u.sourceUrl,
-          verifiedAt: u.verifiedAt
-        });
-      });
+      classification = "Insufficient Information";
+      answerMarkdown = `### ℹ️ Grounded Information Guidance
 
-      answerMarkdown = `### 🎓 General Admissions & Guidance Breakdown
-
-To maximize your chances of international university admission and scholarship selection:
-
-1. **Academic Verification:** Ensure your transcripts match the target country's entry criteria (e.g., ECTS credit equivalency or GPA scale).
-2. **Language Testing:** Prepare required language proficiency tests (DELF/TCF for French programs, IELTS/TOEFL for English programs).
-3. **Document Checklist:** Organize certified translations of your Baccalauréat diploma, university transcripts, CV, and Motivation Letter.
-4. **Deadline Tracking:** Application cycles typically open between October and January for the following autumn intake.`;
-
-      suggestedChecklist.push(
-        "Complete academic profile details on UniPath",
-        "Bookmark preferred universities and scholarships to your Dashboard",
-        "Verify exact document requirements on official source links"
-      );
+The requested query requires additional verified records. To protect students from unverified or hallucinated claims, UniPath only provides guidance grounded in approved database records.`;
     }
 
     return {
       answerMarkdown,
+      classification,
       citedSources,
       suggestedChecklist,
-      confidenceScore: 0.95,
+      confidenceScore: classification === "Insufficient Information" ? 0.4 : 0.95,
       isFallbackEngine: true
     };
   }

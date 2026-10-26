@@ -33,3 +33,24 @@ export const TaskToggleSchema = z.object({
   taskId: z.string(),
   isCompleted: z.boolean(),
 });
+
+// System A Research Task Schemas
+export const ResearchTaskCreateSchema = z.object({
+  instruction: z.string().min(10, "Instruction must be at least 10 characters long"),
+  targetInstitution: z.string().optional(),
+  targetCountry: z.string().default("Morocco"),
+  taskType: z.enum([
+    "research_university",
+    "find_requirements",
+    "verify_deadlines",
+    "research_scholarships",
+    "recheck_outdated"
+  ]).default("research_university"),
+});
+
+export const ProposedRecordReviewSchema = z.object({
+  proposedRecordId: z.string().uuid(),
+  action: z.enum(["approve", "reject", "edit", "request_more_research"]),
+  rejectionReason: z.string().optional(),
+  editedData: z.record(z.any()).optional(),
+});
