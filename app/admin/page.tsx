@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, Bot, CheckCircle2, XCircle, RefreshCw, FileText, Check, Lock, LogOut } from "lucide-react";
+import { ShieldCheck, Bot, XCircle, RefreshCw, FileText, Check, Lock, LogOut, Mail, Key } from "lucide-react";
 import { ResearchTask, ProposedRecord } from "@/types";
 
+const AUTHORIZED_ADMIN_EMAIL = "ibrahimkhallouki2@gmail.com";
+
 export default function AdminWorkspacePage() {
+  const [adminEmail, setAdminEmail] = useState<string>(AUTHORIZED_ADMIN_EMAIL);
   const [adminPasskey, setAdminPasskey] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>("");
+  const [activeAdminEmail, setActiveAdminEmail] = useState<string>("");
 
   const [instruction, setInstruction] = useState("");
   const [targetInst, setTargetInst] = useState("");
@@ -23,26 +27,37 @@ export default function AdminWorkspacePage() {
   const [selectedRecord, setSelectedRecord] = useState<ProposedRecord | null>(null);
   const [activeTab, setActiveTab] = useState<"queue" | "tasks">("queue");
 
+  // Require explicit login by default on navigation
   useEffect(() => {
     const savedKey = sessionStorage.getItem("unipath_admin_passkey");
-    if (savedKey) {
-      setAdminPasskey(savedKey);
-      verifyAndFetchData(savedKey);
+    const savedEmail = sessionStorage.getItem("unipath_admin_email");
+    if (savedKey && savedEmail && savedEmail.toLowerCase() === AUTHORIZED_ADMIN_EMAIL) {
+      verifyAndFetchData(savedKey, savedEmail);
     }
   }, []);
 
-  const verifyAndFetchData = async (keyToUse: string) => {
+  const verifyAndFetchData = async (keyToUse: string, emailToUse: string) => {
     setAuthError("");
     try {
-      const headers = { "x-admin-secret": keyToUse };
+      const headers: Record<string, string> = {
+        "x-admin-secret": keyToUse,
+        "x-admin-email": emailToUse,
+      };
+
       const [tasksRes, recordsRes] = await Promise.all([
         fetch("/api/admin/research-tasks", { headers }),
         fetch("/api/admin/proposed-records", { headers }),
       ]);
 
-      if (tasksRes.status === 401 || tasksRes.status === 403) {
+      if (!tasksRes.ok || !recordsRes.ok) {
         setIsAuthenticated(false);
-        setAuthError("Invalid administrative passkey or credentials.");
+        sessionStorage.removeItem("unipath_admin_passkey");
+        sessionStorage.removeItem("unipath_admin_email");
+        if (emailToUse && emailToUse.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL) {
+          setAuthError(`Access Denied: '${emailToUse}' is not an authorized administrator email.`);
+        } else {
+          setAuthError("Authentication failed: Invalid passkey or unauthorized email credentials.");
+        }
         return;
       }
 
@@ -51,6 +66,8 @@ export default function AdminWorkspacePage() {
 
       setIsAuthenticated(true);
       sessionStorage.setItem("unipath_admin_passkey", keyToUse);
+      sessionStorage.setItem("unipath_admin_email", emailToUse);
+      setActiveAdminEmail(emailToUse);
 
       if (tasksData.tasks) setTasks(tasksData.tasks);
       if (recordsData.records) {
@@ -61,20 +78,44 @@ export default function AdminWorkspacePage() {
       }
     } catch (err) {
       console.error("Failed to authenticate admin:", err);
+      setIsAuthenticated(false);
       setAuthError("Failed to connect to administrative portal.");
     }
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminPasskey.trim()) return;
-    verifyAndFetchData(adminPasskey);
+    setAuthError("");
+
+    if (!adminEmail.trim()) {
+      setAuthError("Please enter your administrator email.");
+      return;
+    }
+    if (adminEmail.trim().toLowerCase() !== AUTHORIZED_ADMIN_EMAIL) {
+      setAuthError(`Access Denied: '${adminEmail}' is not in the authorized administrator whitelist.`);
+      return;
+    }
+    if (!adminPasskey.trim()) {
+      setAuthError("Please enter the administrator secret passkey.");
+      return;
+    }
+
+    verifyAndFetchData(adminPasskey.trim(), adminEmail.trim());
   };
 
   const handleLogout = () => {
     sessionStorage.removeItem("unipath_admin_passkey");
+    sessionStorage.removeItem("unipath_admin_email");
     setIsAuthenticated(false);
     setAdminPasskey("");
+  };
+
+  const getHeaders = () => {
+    return {
+      "Content-Type": "application/json",
+      "x-admin-secret": adminPasskey,
+      "x-admin-email": activeAdminEmail,
+    };
   };
 
   const handleCreateTask = async () => {
@@ -83,10 +124,7 @@ export default function AdminWorkspacePage() {
     try {
       const res = await fetch("/api/admin/research-tasks", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-secret": adminPasskey,
-        },
+        headers: getHeaders(),
         body: JSON.stringify({
           instruction,
           targetInstitution: targetInst || undefined,
@@ -98,7 +136,7 @@ export default function AdminWorkspacePage() {
       if (data.task) {
         setInstruction("");
         setTargetInst("");
-        verifyAndFetchData(adminPasskey);
+        verifyAndFetchData(adminPasskey, activeAdminEmail);
       }
     } catch (err) {
       console.error("Task creation error:", err);
@@ -111,10 +149,7 @@ export default function AdminWorkspacePage() {
     try {
       const res = await fetch("/api/admin/proposed-records", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-secret": adminPasskey,
-        },
+        headers: getHeaders(),
         body: JSON.stringify({
           proposedRecordId,
           action,
@@ -123,7 +158,7 @@ export default function AdminWorkspacePage() {
       });
       const data = await res.json();
       if (data.record) {
-        verifyAndFetchData(adminPasskey);
+        verifyAndFetchData(adminPasskey, activeAdminEmail);
       }
     } catch (err) {
       console.error("Review action error:", err);
@@ -134,30 +169,56 @@ export default function AdminWorkspacePage() {
   if (!isAuthenticated) {
     return (
       <div className="max-w-md mx-auto px-4 py-16">
-        <Card className="border-slate-300">
+        <Card className="border-slate-800 shadow-2xl bg-slate-950 text-slate-100">
           <CardHeader className="text-center">
-            <div className="w-12 h-12 bg-blue-900 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-2">
+            <div className="w-12 h-12 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto mb-2">
               <Lock className="w-6 h-6" />
             </div>
-            <CardTitle className="text-xl font-bold text-blue-950">
-              Admin Workspace Login
+            <CardTitle className="text-xl font-bold text-white">
+              UniPath Secure Admin Portal
             </CardTitle>
-            <CardDescription className="text-xs text-slate-600">
-              Enter your administrative passkey to access System A research tasks and review queues.
+            <CardDescription className="text-xs text-slate-400">
+              Authorized administrator access for <span className="text-amber-400 font-mono">{AUTHORIZED_ADMIN_EMAIL}</span>
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <form onSubmit={handleLogin} className="space-y-4">
-              <Input
-                type="password"
-                value={adminPasskey}
-                onChange={(e) => setAdminPasskey(e.target.value)}
-                placeholder="Enter admin passkey..."
-                className="bg-white"
-              />
-              {authError && <p className="text-xs text-red-600 font-medium">{authError}</p>}
-              <Button type="submit" variant="primary" className="w-full font-bold">
-                Authenticate Admin
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Administrator Email Address</span>
+                </label>
+                <Input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder={AUTHORIZED_ADMIN_EMAIL}
+                  className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Admin Secret / Passkey</span>
+                </label>
+                <Input
+                  type="password"
+                  value={adminPasskey}
+                  onChange={(e) => setAdminPasskey(e.target.value)}
+                  placeholder="Enter administrator passkey..."
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+
+              {authError && (
+                <div className="p-3 bg-red-950/60 border border-red-500/40 rounded-lg text-xs text-red-300 font-medium">
+                  {authError}
+                </div>
+              )}
+
+              <Button type="submit" variant="primary" className="w-full font-bold bg-amber-500 hover:bg-amber-400 text-slate-950">
+                Authenticate Administrator
               </Button>
             </form>
           </CardContent>
@@ -173,7 +234,7 @@ export default function AdminWorkspacePage() {
         <div>
           <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider mb-1">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Private Administrative Workspace</span>
+            <span>Private Administrative Workspace — Active Admin: {activeAdminEmail}</span>
           </div>
           <h1 className="text-2xl font-black">UniPath Research Agent & Data Review Queue</h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -182,7 +243,7 @@ export default function AdminWorkspacePage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => verifyAndFetchData(adminPasskey)} className="gap-1.5 bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
+          <Button size="sm" variant="outline" onClick={() => verifyAndFetchData(adminPasskey, activeAdminEmail)} className="gap-1.5 bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh Queue</span>
           </Button>
@@ -194,13 +255,13 @@ export default function AdminWorkspacePage() {
       </div>
 
       {/* Task Trigger Bar */}
-      <Card className="border-blue-200 bg-blue-50/30">
+      <Card className="border-blue-900/50 bg-slate-900 text-white">
         <CardHeader>
-          <CardTitle className="text-base font-bold text-blue-950 flex items-center gap-2">
-            <Bot className="w-5 h-5 text-blue-900" />
+          <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+            <Bot className="w-5 h-5 text-amber-400" />
             <span>Submit Natural Language Research Instruction</span>
           </CardTitle>
-          <CardDescription className="text-xs text-slate-600">
+          <CardDescription className="text-xs text-slate-400">
             Instruct the UniPath Research Agent to discover official website sources, extract admission rules, and link claim-level evidence.
           </CardDescription>
         </CardHeader>
@@ -211,7 +272,7 @@ export default function AdminWorkspacePage() {
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
                 placeholder="e.g. Research Moroccan engineering schools computer science programs and official application deadlines..."
-                className="bg-white"
+                className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
               />
             </div>
             <div>
@@ -219,11 +280,11 @@ export default function AdminWorkspacePage() {
                 value={targetInst}
                 onChange={(e) => setTargetInst(e.target.value)}
                 placeholder="Target Institution (e.g. ENSIAS Rabat)"
-                className="bg-white"
+                className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
               />
             </div>
             <div>
-              <Select value={targetCountry} onChange={(e) => setTargetCountry(e.target.value)} className="bg-white">
+              <Select value={targetCountry} onChange={(e) => setTargetCountry(e.target.value)} className="bg-slate-950 border-slate-800 text-white">
                 <option value="Morocco">Morocco</option>
                 <option value="France">France</option>
                 <option value="Germany">Germany</option>
@@ -232,8 +293,8 @@ export default function AdminWorkspacePage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-blue-100">
-            <div className="text-xs text-slate-500 italic">
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+            <div className="text-xs text-slate-400 italic">
               Example: "Research Moroccan engineering schools (ENSIAS, EMI, EHTP) deadlines and official portal URLs."
             </div>
             <Button
@@ -241,7 +302,7 @@ export default function AdminWorkspacePage() {
               disabled={loading || !instruction.trim()}
               variant="primary"
               size="sm"
-              className="gap-1.5"
+              className="gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
               <span>Run Research Agent</span>
@@ -251,12 +312,12 @@ export default function AdminWorkspacePage() {
       </Card>
 
       {/* Workspace Tabs */}
-      <div className="border-b border-slate-200 flex items-center gap-4">
+      <div className="border-b border-slate-800 flex items-center gap-4">
         <button
           type="button"
           onClick={() => setActiveTab("queue")}
           className={`pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "queue" ? "border-blue-900 text-blue-950" : "border-transparent text-slate-500 hover:text-slate-900"
+            activeTab === "queue" ? "border-amber-400 text-amber-400" : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -267,7 +328,7 @@ export default function AdminWorkspacePage() {
           type="button"
           onClick={() => setActiveTab("tasks")}
           className={`pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "tasks" ? "border-blue-900 text-blue-950" : "border-transparent text-slate-500 hover:text-slate-900"
+            activeTab === "tasks" ? "border-amber-400 text-amber-400" : "border-transparent text-slate-400 hover:text-white"
           }`}
         >
           <Bot className="w-4 h-4" />
@@ -280,14 +341,14 @@ export default function AdminWorkspacePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* List column */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Staged Research Proposals</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Staged Research Proposals</h3>
             {proposedRecords.length > 0 ? (
               proposedRecords.map((record) => (
                 <Card
                   key={record.id}
                   onClick={() => setSelectedRecord(record)}
-                  className={`cursor-pointer transition-all ${
-                    selectedRecord?.id === record.id ? "border-blue-900 ring-2 ring-blue-900/10 bg-blue-50/20" : "hover:border-slate-300"
+                  className={`cursor-pointer transition-all bg-slate-900 border-slate-800 text-white ${
+                    selectedRecord?.id === record.id ? "border-amber-400 ring-2 ring-amber-400/20 bg-slate-800" : "hover:border-slate-700"
                   }`}
                 >
                   <CardHeader className="p-4">
@@ -297,17 +358,17 @@ export default function AdminWorkspacePage() {
                       </Badge>
                       <span className="text-[11px] font-mono text-slate-400">{record.verificationStatus}</span>
                     </div>
-                    <CardTitle className="text-sm font-bold text-blue-950">
+                    <CardTitle className="text-sm font-bold text-white">
                       {record.proposedData?.name || record.proposedData?.title || "Proposed Institution"}
                     </CardTitle>
-                    <CardDescription className="text-xs text-slate-500 line-clamp-1">
+                    <CardDescription className="text-xs text-slate-400 line-clamp-1">
                       Target: {record.proposedData?.country || "Morocco"} • {record.claimEvidences.length} Claim Evidences
                     </CardDescription>
                   </CardHeader>
                 </Card>
               ))
             ) : (
-              <p className="text-xs text-slate-500 py-6 text-center bg-white rounded-lg border border-slate-200">
+              <p className="text-xs text-slate-400 py-6 text-center bg-slate-900 rounded-lg border border-slate-800">
                 No research proposals currently pending review.
               </p>
             )}
@@ -316,16 +377,16 @@ export default function AdminWorkspacePage() {
           {/* Evidence Details Column */}
           <div className="lg:col-span-2">
             {selectedRecord ? (
-              <Card className="border-slate-200">
+              <Card className="border-slate-800 bg-slate-900 text-white">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Badge variant="primary" className="text-xs">{selectedRecord.entityType}</Badge>
-                      <CardTitle className="text-xl font-bold text-blue-950 mt-1">
+                      <Badge variant="primary" className="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">{selectedRecord.entityType}</Badge>
+                      <CardTitle className="text-xl font-bold text-white mt-1">
                         {selectedRecord.proposedData?.name || selectedRecord.proposedData?.title}
                       </CardTitle>
-                      <CardDescription className="text-xs text-slate-600">
-                        Official Website: <a href={selectedRecord.proposedData?.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-blue-900 underline">{selectedRecord.proposedData?.websiteUrl}</a>
+                      <CardDescription className="text-xs text-slate-400">
+                        Official Website: <a href={selectedRecord.proposedData?.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-amber-400 underline">{selectedRecord.proposedData?.websiteUrl}</a>
                       </CardDescription>
                     </div>
 
@@ -336,7 +397,7 @@ export default function AdminWorkspacePage() {
                             size="sm"
                             variant="primary"
                             onClick={() => handleReviewAction(selectedRecord.id, "approve")}
-                            className="bg-emerald-700 hover:bg-emerald-800 text-white gap-1"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1"
                           >
                             <Check className="w-4 h-4" />
                             <span>Approve & Publish</span>
@@ -358,31 +419,31 @@ export default function AdminWorkspacePage() {
 
                 <CardContent className="space-y-6">
                   {/* Proposed Data Fields Summary */}
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Proposed Extracted Data Fields:</h4>
-                    <pre className="text-xs font-mono bg-white p-3 rounded border border-slate-200 overflow-x-auto text-slate-800 max-h-48">
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Proposed Extracted Data Fields:</h4>
+                    <pre className="text-xs font-mono bg-slate-900 p-3 rounded border border-slate-800 overflow-x-auto text-amber-300 max-h-48">
                       {JSON.stringify(selectedRecord.proposedData, null, 2)}
                     </pre>
                   </div>
 
                   {/* Claim-Level Evidence Links */}
                   <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
                       Claim-Level Supporting Evidences ({selectedRecord.claimEvidences.length}):
                     </h4>
 
                     {selectedRecord.claimEvidences.map((ev) => (
-                      <div key={ev.id} className="p-3 bg-white rounded-lg border border-slate-200 space-y-1 text-xs">
-                        <div className="flex items-center justify-between font-bold text-slate-900">
-                          <span className="text-blue-950 font-semibold">{ev.fieldName}: {ev.claimValue}</span>
-                          <Badge variant="verified" className="text-[10px]">{ev.sourceType}</Badge>
+                      <div key={ev.id} className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1 text-xs">
+                        <div className="flex items-center justify-between font-bold text-white">
+                          <span className="text-amber-400 font-semibold">{ev.fieldName}: {ev.claimValue}</span>
+                          <Badge variant="verified" className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">{ev.sourceType}</Badge>
                         </div>
-                        <p className="text-slate-600 italic border-l-2 border-emerald-500 pl-2 my-1">
+                        <p className="text-slate-300 italic border-l-2 border-emerald-500 pl-2 my-1">
                           "{ev.evidenceExcerpt}"
                         </p>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                          <span>Source: <a href={ev.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-900 hover:underline">{ev.sourceTitle}</a></span>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-900">
+                          <span>Source: <a href={ev.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">{ev.sourceTitle}</a></span>
                           <span className="font-mono">Verified: {ev.verifiedAt} ({ev.academicCycle})</span>
                         </div>
                       </div>
@@ -391,7 +452,7 @@ export default function AdminWorkspacePage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="p-12 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
+              <div className="p-12 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">
                 Select a research proposal from the left queue to inspect claim-level evidence.
               </div>
             )}
@@ -403,20 +464,20 @@ export default function AdminWorkspacePage() {
       {activeTab === "tasks" && (
         <div className="space-y-4">
           {tasks.map((task) => (
-            <Card key={task.id} className="border-slate-200">
+            <Card key={task.id} className="border-slate-800 bg-slate-900 text-white">
               <CardHeader className="p-4">
                 <div className="flex items-center justify-between text-xs">
-                  <Badge variant="primary" className="bg-blue-100 text-blue-900">{task.status}</Badge>
+                  <Badge variant="primary" className="bg-amber-500/20 text-amber-400 border border-amber-500/30">{task.status}</Badge>
                   <span className="font-mono text-slate-400">{task.createdAt}</span>
                 </div>
-                <CardTitle className="text-base font-bold text-blue-950 mt-1">{task.instruction}</CardTitle>
-                <CardDescription className="text-xs text-slate-500">
+                <CardTitle className="text-base font-bold text-white mt-1">{task.instruction}</CardTitle>
+                <CardDescription className="text-xs text-slate-400">
                   Target: {task.targetInstitution || task.targetCountry}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 pt-0 space-y-2">
-                <h5 className="text-xs font-bold text-slate-700">Agent Step Logs:</h5>
-                <div className="bg-slate-900 text-slate-200 p-3 rounded-lg font-mono text-xs space-y-1">
+                <h5 className="text-xs font-bold text-slate-300">Agent Step Logs:</h5>
+                <div className="bg-slate-950 text-slate-200 p-3 rounded-lg font-mono text-xs space-y-1 border border-slate-800">
                   {task.logs?.map((log) => (
                     <div key={log.id} className="flex items-start gap-2">
                       <span className="text-amber-400 font-bold">[{log.logLevel.toUpperCase()}]</span>
