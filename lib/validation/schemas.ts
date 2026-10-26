@@ -49,7 +49,7 @@ export const ResearchTaskCreateSchema = z.object({
 });
 
 export const ProposedRecordReviewSchema = z.object({
-  proposedRecordId: z.string().uuid(),
+  proposedRecordId: z.string().min(1, "Proposed record ID is required"),
   action: z.enum(["approve", "reject", "edit", "request_more_research"]),
   rejectionReason: z.string().optional(),
   editedData: z.record(z.any()).optional(),

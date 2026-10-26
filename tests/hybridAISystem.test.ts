@@ -1,6 +1,23 @@
 import { describe, it, expect } from "vitest";
 import { ResearchAgentService } from "@/lib/services/researchAgent";
 import { AIGuidanceService } from "@/lib/services/aiGuidance";
+import { DataService } from "@/lib/services/dataService";
+import { isAuthorizedAdmin } from "@/lib/utils/adminAuth";
+import { NextRequest } from "next/server";
+
+describe("Server-Side Administrative Authorization", () => {
+  it("should reject requests without authorization headers", () => {
+    const unauthReq = new NextRequest("http://localhost:3000/api/admin/research-tasks");
+    expect(isAuthorizedAdmin(unauthReq)).toBe(false);
+  });
+
+  it("should accept requests with valid admin secret header", () => {
+    const authReq = new NextRequest("http://localhost:3000/api/admin/research-tasks", {
+      headers: { "x-admin-secret": "unipath-secure-admin-key-2026" },
+    });
+    expect(isAuthorizedAdmin(authReq)).toBe(true);
+  });
+});
 
 describe("System A — UniPath Research Agent & Review Queue", () => {
   it("should create a research task and stage a proposed record with claim-level evidence", async () => {
@@ -24,7 +41,7 @@ describe("System A — UniPath Research Agent & Review Queue", () => {
     expect(claim?.evidenceExcerpt).toBeDefined();
   });
 
-  it("should approve proposed record and transition status to approved", () => {
+  it("should approve proposed record and publish it to public DataService catalog", () => {
     const records = ResearchAgentService.getProposedRecords({ reviewStatus: "pending_review" });
     expect(records.length).toBeGreaterThan(0);
 
@@ -34,6 +51,11 @@ describe("System A — UniPath Research Agent & Review Queue", () => {
     expect(approved?.reviewStatus).toBe("approved");
     expect(approved?.verificationStatus).toBe("VERIFIED");
     expect(approved?.reviewedAt).toBeDefined();
+
+    // Verify record is published in public DataService directory
+    const published = DataService.getUniversityById(recordToApprove.id);
+    expect(published).toBeDefined();
+    expect(published?.name).toBe(approved?.proposedData.name);
   });
 
   it("should reject proposed record with rejection reason", () => {

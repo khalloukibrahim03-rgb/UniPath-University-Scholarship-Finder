@@ -1,5 +1,9 @@
 import { DEMO_UNIVERSITIES, DEMO_SCHOLARSHIPS, DEMO_USER_APPLICATIONS } from "@/lib/data/seedData";
-import { University, Scholarship, UserApplication, AcademicProgram } from "@/types";
+import { University, Scholarship, UserApplication, AcademicProgram, ProposedRecord } from "@/types";
+
+// Dynamic published store initialized with seed records
+const PUBLISHED_UNIVERSITIES: University[] = [...DEMO_UNIVERSITIES];
+const PUBLISHED_SCHOLARSHIPS: Scholarship[] = [...DEMO_SCHOLARSHIPS];
 
 export class DataService {
   /**
@@ -11,7 +15,7 @@ export class DataService {
     degreeLevel?: string;
     maxTuition?: number;
   }): University[] {
-    let result = [...DEMO_UNIVERSITIES];
+    let result = [...PUBLISHED_UNIVERSITIES];
 
     if (!filters) return result;
 
@@ -40,7 +44,7 @@ export class DataService {
   }
 
   static getUniversityById(id: string): University | undefined {
-    return DEMO_UNIVERSITIES.find((u) => u.id === id || u.slug === id);
+    return PUBLISHED_UNIVERSITIES.find((u) => u.id === id || u.slug === id);
   }
 
   /**
@@ -51,7 +55,7 @@ export class DataService {
     destinationCountry?: string;
     coverageType?: string;
   }): Scholarship[] {
-    let result = [...DEMO_SCHOLARSHIPS];
+    let result = [...PUBLISHED_SCHOLARSHIPS];
 
     if (!filters) return result;
 
@@ -79,7 +83,109 @@ export class DataService {
   }
 
   static getScholarshipById(id: string): Scholarship | undefined {
-    return DEMO_SCHOLARSHIPS.find((s) => s.id === id || s.slug === id);
+    return PUBLISHED_SCHOLARSHIPS.find((s) => s.id === id || s.slug === id);
+  }
+
+  /**
+   * Publish an approved proposed record into the public database
+   */
+  static publishApprovedRecord(record: ProposedRecord): void {
+    if (record.reviewStatus !== "approved") return;
+
+    if (record.entityType === "university") {
+      const p = record.proposedData;
+      const featuredProg = p.featuredProgram
+        ? [
+            {
+              id: `prog-pub-${Date.now()}`,
+              universityId: record.id,
+              universityName: p.name,
+              universityCountry: p.country,
+              title: p.featuredProgram.title,
+              degreeLevel: p.featuredProgram.degreeLevel || "Master",
+              fieldOfStudy: p.featuredProgram.fieldOfStudy || "Engineering",
+              languageOfInstruction: p.featuredProgram.languageOfInstruction || "French",
+              durationMonths: p.featuredProgram.durationMonths || 24,
+              tuitionFeeAnnual: p.featuredProgram.tuitionFeeAnnual || 0,
+              currency: p.featuredProgram.currency || "MAD",
+              applicationDeadline: p.featuredProgram.applicationDeadline,
+              academicCycle: p.featuredProgram.academicCycle || "2025/2026",
+              verificationStatus: "verified" as const,
+              verifiedAt: new Date().toISOString().split("T")[0],
+              sourceUrl: p.sourceUrl || p.websiteUrl,
+              requirements: [
+                {
+                  id: `req-pub-${Date.now()}`,
+                  programId: `prog-pub-${Date.now()}`,
+                  requirementType: "Academic Record" as const,
+                  title: "Diplôme / Licence Equivalent",
+                  description: "Verified academic background criteria from official portal.",
+                  isMandatory: true,
+                  acceptedQualifications: ["DEUG / Licence / Baccalauréat"],
+                  verificationStatus: "verified" as const,
+                },
+              ],
+            },
+          ]
+        : [];
+
+      const newUni: University = {
+        id: record.id,
+        name: p.name,
+        slug: p.slug || record.id,
+        country: p.country || "Morocco",
+        city: p.city || "Rabat",
+        websiteUrl: p.websiteUrl,
+        description: p.description || "Verified public institution profile.",
+        rankingNational: p.rankingNational || 1,
+        isPublic: p.isPublic !== undefined ? p.isPublic : true,
+        verificationStatus: "verified",
+        dataQualityState: "VERIFIED",
+        verifiedAt: new Date().toISOString().split("T")[0],
+        sourceUrl: p.sourceUrl || p.websiteUrl,
+        programsCount: featuredProg.length,
+        featuredPrograms: featuredProg,
+        claimEvidences: record.claimEvidences,
+      };
+
+      // Check if already published
+      const existingIdx = PUBLISHED_UNIVERSITIES.findIndex((u) => u.id === record.id);
+      if (existingIdx >= 0) {
+        PUBLISHED_UNIVERSITIES[existingIdx] = newUni;
+      } else {
+        PUBLISHED_UNIVERSITIES.unshift(newUni);
+      }
+    } else if (record.entityType === "scholarship") {
+      const p = record.proposedData;
+      const newSch: Scholarship = {
+        id: record.id,
+        title: p.title || p.name,
+        slug: p.slug || record.id,
+        providerName: p.providerName || "Official Provider",
+        targetCountries: p.targetCountries || ["Morocco", "Africa"],
+        destinationCountries: p.destinationCountries || ["Morocco"],
+        coverageType: p.coverageType || "Full Ride",
+        stipendAmountAnnual: p.stipendAmountAnnual || 0,
+        currency: p.currency || "MAD",
+        eligibleDegrees: p.eligibleDegrees || ["Master"],
+        applicationDeadline: p.applicationDeadline || "2025-06-30",
+        applicationUrl: p.applicationUrl || p.websiteUrl,
+        verificationStatus: "verified",
+        dataQualityState: "VERIFIED",
+        verifiedAt: new Date().toISOString().split("T")[0],
+        sourceUrl: p.sourceUrl || p.websiteUrl,
+        description: p.description || "Verified scholarship program.",
+        requirementsList: p.requirementsList || ["Official application submission"],
+        claimEvidences: record.claimEvidences,
+      };
+
+      const existingIdx = PUBLISHED_SCHOLARSHIPS.findIndex((s) => s.id === record.id);
+      if (existingIdx >= 0) {
+        PUBLISHED_SCHOLARSHIPS[existingIdx] = newSch;
+      } else {
+        PUBLISHED_SCHOLARSHIPS.unshift(newSch);
+      }
+    }
   }
 
   /**
@@ -94,8 +200,8 @@ export class DataService {
    */
   static getAvailableCountries(): string[] {
     const countries = new Set<string>();
-    DEMO_UNIVERSITIES.forEach((u) => countries.add(u.country));
-    DEMO_SCHOLARSHIPS.forEach((s) => s.destinationCountries.forEach((c) => countries.add(c)));
+    PUBLISHED_UNIVERSITIES.forEach((u) => countries.add(u.country));
+    PUBLISHED_SCHOLARSHIPS.forEach((s) => s.destinationCountries.forEach((c) => countries.add(c)));
     return Array.from(countries).sort();
   }
 }

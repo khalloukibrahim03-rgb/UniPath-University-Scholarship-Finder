@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ResearchAgentService } from "@/lib/services/researchAgent";
 import { ProposedRecordReviewSchema } from "@/lib/validation/schemas";
+import { isAuthorizedAdmin } from "@/lib/utils/adminAuth";
 
 export async function GET(req: NextRequest) {
+  if (!isAuthorizedAdmin(req)) {
+    return NextResponse.json({ error: "Unauthorized access to proposed records queue" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const reviewStatus = searchParams.get("reviewStatus") || undefined;
 
@@ -11,6 +16,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthorizedAdmin(req)) {
+    return NextResponse.json({ error: "Unauthorized: Administrator privileges required to review proposed records" }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const parsed = ProposedRecordReviewSchema.parse(body);

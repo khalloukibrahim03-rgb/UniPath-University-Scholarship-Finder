@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, Bot, CheckCircle2, XCircle, Search, ExternalLink, RefreshCw, FileText, Check, AlertTriangle, Clock } from "lucide-react";
+import { ShieldCheck, Bot, CheckCircle2, XCircle, RefreshCw, FileText, Check, Lock, LogOut } from "lucide-react";
 import { ResearchTask, ProposedRecord } from "@/types";
 
 export default function AdminWorkspacePage() {
+  const [adminPasskey, setAdminPasskey] = useState<string>("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string>("");
+
   const [instruction, setInstruction] = useState("");
   const [targetInst, setTargetInst] = useState("");
   const [targetCountry, setTargetCountry] = useState("Morocco");
@@ -17,16 +21,36 @@ export default function AdminWorkspacePage() {
   const [tasks, setTasks] = useState<ResearchTask[]>([]);
   const [proposedRecords, setProposedRecords] = useState<ProposedRecord[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<ProposedRecord | null>(null);
-  const [activeTab, setActiveTab] = useState<"queue" | "tasks" | "audit">("queue");
+  const [activeTab, setActiveTab] = useState<"queue" | "tasks">("queue");
 
-  const fetchAdminData = async () => {
+  useEffect(() => {
+    const savedKey = sessionStorage.getItem("unipath_admin_passkey");
+    if (savedKey) {
+      setAdminPasskey(savedKey);
+      verifyAndFetchData(savedKey);
+    }
+  }, []);
+
+  const verifyAndFetchData = async (keyToUse: string) => {
+    setAuthError("");
     try {
+      const headers = { "x-admin-secret": keyToUse };
       const [tasksRes, recordsRes] = await Promise.all([
-        fetch("/api/admin/research-tasks"),
-        fetch("/api/admin/proposed-records"),
+        fetch("/api/admin/research-tasks", { headers }),
+        fetch("/api/admin/proposed-records", { headers }),
       ]);
+
+      if (tasksRes.status === 401 || tasksRes.status === 403) {
+        setIsAuthenticated(false);
+        setAuthError("Invalid administrative passkey or credentials.");
+        return;
+      }
+
       const tasksData = await tasksRes.json();
       const recordsData = await recordsRes.json();
+
+      setIsAuthenticated(true);
+      sessionStorage.setItem("unipath_admin_passkey", keyToUse);
 
       if (tasksData.tasks) setTasks(tasksData.tasks);
       if (recordsData.records) {
@@ -36,13 +60,22 @@ export default function AdminWorkspacePage() {
         }
       }
     } catch (err) {
-      console.error("Failed to fetch admin data:", err);
+      console.error("Failed to authenticate admin:", err);
+      setAuthError("Failed to connect to administrative portal.");
     }
   };
 
-  useEffect(() => {
-    fetchAdminData();
-  }, []);
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPasskey.trim()) return;
+    verifyAndFetchData(adminPasskey);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("unipath_admin_passkey");
+    setIsAuthenticated(false);
+    setAdminPasskey("");
+  };
 
   const handleCreateTask = async () => {
     if (!instruction.trim()) return;
@@ -50,7 +83,10 @@ export default function AdminWorkspacePage() {
     try {
       const res = await fetch("/api/admin/research-tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": adminPasskey,
+        },
         body: JSON.stringify({
           instruction,
           targetInstitution: targetInst || undefined,
@@ -62,7 +98,7 @@ export default function AdminWorkspacePage() {
       if (data.task) {
         setInstruction("");
         setTargetInst("");
-        fetchAdminData();
+        verifyAndFetchData(adminPasskey);
       }
     } catch (err) {
       console.error("Task creation error:", err);
@@ -75,7 +111,10 @@ export default function AdminWorkspacePage() {
     try {
       const res = await fetch("/api/admin/proposed-records", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": adminPasskey,
+        },
         body: JSON.stringify({
           proposedRecordId,
           action,
@@ -84,12 +123,48 @@ export default function AdminWorkspacePage() {
       });
       const data = await res.json();
       if (data.record) {
-        fetchAdminData();
+        verifyAndFetchData(adminPasskey);
       }
     } catch (err) {
       console.error("Review action error:", err);
     }
   };
+
+  // Render Login Gate if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16">
+        <Card className="border-slate-300">
+          <CardHeader className="text-center">
+            <div className="w-12 h-12 bg-blue-900 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Lock className="w-6 h-6" />
+            </div>
+            <CardTitle className="text-xl font-bold text-blue-950">
+              Admin Workspace Login
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-600">
+              Enter your administrative passkey to access System A research tasks and review queues.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Input
+                type="password"
+                value={adminPasskey}
+                onChange={(e) => setAdminPasskey(e.target.value)}
+                placeholder="Enter admin passkey..."
+                className="bg-white"
+              />
+              {authError && <p className="text-xs text-red-600 font-medium">{authError}</p>}
+              <Button type="submit" variant="primary" className="w-full font-bold">
+                Authenticate Admin
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -107,9 +182,13 @@ export default function AdminWorkspacePage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={fetchAdminData} className="gap-1.5 bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
+          <Button size="sm" variant="outline" onClick={() => verifyAndFetchData(adminPasskey)} className="gap-1.5 bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh Queue</span>
+          </Button>
+          <Button size="sm" variant="destructive" onClick={handleLogout} className="gap-1">
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
           </Button>
         </div>
       </div>

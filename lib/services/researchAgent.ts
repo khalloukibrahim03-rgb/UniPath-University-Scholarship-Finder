@@ -1,4 +1,5 @@
-import { ResearchTask, ProposedRecord, ClaimEvidence, ResearchTaskLog, DataQualityState } from "@/types";
+import { ResearchTask, ProposedRecord, ClaimEvidence, ResearchTaskLog } from "@/types";
+import { DataService } from "@/lib/services/dataService";
 
 export interface ResearchTaskInput {
   instruction: string;
@@ -7,7 +8,7 @@ export interface ResearchTaskInput {
   taskType?: string;
 }
 
-// In-memory store for research tasks, proposed records, and logs (backed by database schema)
+// In-memory store for research tasks and proposed records
 const IN_MEMORY_RESEARCH_TASKS: ResearchTask[] = [
   {
     id: "task-demo-01",
@@ -37,7 +38,7 @@ const IN_MEMORY_RESEARCH_TASKS: ResearchTask[] = [
         id: "log-03",
         taskId: "task-demo-01",
         logLevel: "info",
-        message: "Extracted 4 claim-level evidences with verified timestamps.",
+        message: "Extracted 3 claim-level evidences with verified timestamps.",
         timestamp: "2024-10-26T10:03:00Z"
       },
       {
@@ -60,8 +61,8 @@ const IN_MEMORY_PROPOSED_RECORDS: ProposedRecord[] = [
     reviewStatus: "pending_review",
     createdAt: "2024-10-26T10:05:00Z",
     proposedData: {
-      name: "ENSIAS — École Nationale Supérieure d'Informatique et d'Analyse des Systèmes [Proposed]",
-      slug: "ensias-rabat-proposed",
+      name: "ENSIAS — École Nationale Supérieure d'Informatique et d'Analyse des Systèmes [Approved Record]",
+      slug: "ensias-rabat-approved",
       country: "Morocco",
       city: "Rabat",
       websiteUrl: "http://ensias.um5.ac.ma",
@@ -205,7 +206,7 @@ export class ResearchAgentService {
       reviewStatus: "pending_review",
       createdAt: new Date().toISOString(),
       proposedData: {
-        name: `${targetInst} [Proposed]`,
+        name: `${targetInst} [Proposed Record]`,
         slug: targetInst.toLowerCase().replace(/[^a-z0-9]/g, "-"),
         country: input.targetCountry || "Morocco",
         city: "Rabat",
@@ -286,6 +287,9 @@ export class ResearchAgentService {
       record.verificationStatus = "VERIFIED";
       record.reviewedAt = new Date().toISOString();
       if (editedData) record.proposedData = { ...record.proposedData, ...editedData };
+
+      // Publish into public database / DataService
+      DataService.publishApprovedRecord(record);
     } else if (action === "reject") {
       record.reviewStatus = "rejected";
       record.verificationStatus = "REJECTED";
