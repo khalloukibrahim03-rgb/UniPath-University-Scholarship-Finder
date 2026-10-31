@@ -135,125 +135,65 @@ export class ResearchAgentService {
    */
   static async executeTask(input: ResearchTaskInput): Promise<ResearchTask> {
     const taskId = `task-${Date.now()}`;
-    const targetInst = input.targetInstitution || "Moroccan Higher Education Institution";
+    const targetInst = input.targetInstitution?.trim() || "Institution to be researched";
+    const now = new Date().toISOString();
+
+    // This service currently has no live web-research provider. Create a transparent
+    // manual-review task rather than fabricating official URLs, excerpts, or deadlines.
+    const proposedRecord: ProposedRecord = {
+      id: `prop-${Date.now()}`,
+      taskId,
+      entityType: "university",
+      verificationStatus: "UNVERIFIED",
+      reviewStatus: "pending_review",
+      createdAt: now,
+      proposedData: {
+        name: targetInst,
+        country: input.targetCountry || "Morocco",
+      },
+      claimEvidences: [],
+    };
 
     const logs: ResearchTaskLog[] = [
       {
         id: `log-${Date.now()}-1`,
         taskId,
         logLevel: "info",
-        message: `Parsed instruction: "${input.instruction}"`,
-        timestamp: new Date().toISOString()
+        message: `Research request received for ${targetInst}.`,
+        timestamp: now,
       },
       {
         id: `log-${Date.now()}-2`,
         taskId,
+        logLevel: "warn",
+        message: "Live source retrieval is not configured. No official URLs, deadlines, or evidence have been invented; manual research is required.",
+        timestamp: now,
+      },
+      {
+        id: `log-${Date.now()}-3`,
+        taskId,
         logLevel: "info",
-        message: `Target country set to: ${input.targetCountry || "Morocco"}`,
-        timestamp: new Date().toISOString()
-      }
-    ];
-
-    // Simulating research pipeline stages
-    const officialSourceUrl = `https://admissions.${targetInst.toLowerCase().replace(/[^a-z0-9]/g, "")}.ma`;
-
-    logs.push({
-      id: `log-${Date.now()}-3`,
-      taskId,
-      logLevel: "info",
-      message: `Source discovery: Identified official portal ${officialSourceUrl}`,
-      timestamp: new Date().toISOString()
-    });
-
-    const propId = `prop-${Date.now()}`;
-
-    const evidences: ClaimEvidence[] = [
-      {
-        id: `ev-${Date.now()}-1`,
-        proposedRecordId: propId,
-        entityType: "university",
-        fieldName: "official_website_url",
-        claimValue: officialSourceUrl,
-        sourceUrl: officialSourceUrl,
-        sourceTitle: `${targetInst} Official Portal`,
-        sourceType: "official_website",
-        evidenceExcerpt: `Official accreditation and admissions details for ${targetInst}.`,
-        academicCycle: "2025/2026",
-        verificationStatus: "VERIFIED",
-        verifiedAt: new Date().toISOString().split("T")[0]
+        message: `Created an UNVERIFIED placeholder (${proposedRecord.id}) for human review.`,
+        timestamp: now,
       },
-      {
-        id: `ev-${Date.now()}-2`,
-        proposedRecordId: propId,
-        entityType: "program",
-        fieldName: "application_deadline",
-        claimValue: "2025-05-31",
-        sourceUrl: officialSourceUrl,
-        sourceTitle: `${targetInst} Admissions Schedule`,
-        sourceType: "official_website",
-        evidenceExcerpt: "Official application deadline published for 2025 autumn intake is May 31, 2025.",
-        academicCycle: "2025/2026",
-        verificationStatus: "VERIFIED",
-        verifiedAt: new Date().toISOString().split("T")[0]
-      }
     ];
-
-    const proposedRecord: ProposedRecord = {
-      id: propId,
-      taskId,
-      entityType: "university",
-      verificationStatus: "PARTIALLY_VERIFIED",
-      reviewStatus: "pending_review",
-      createdAt: new Date().toISOString(),
-      proposedData: {
-        name: `${targetInst} [Proposed Record]`,
-        slug: targetInst.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-        country: input.targetCountry || "Morocco",
-        city: "Rabat",
-        websiteUrl: officialSourceUrl,
-        isPublic: true,
-        description: `Research proposal generated for ${targetInst} based on official source inspection.`,
-        sourceUrl: officialSourceUrl,
-        featuredProgram: {
-          title: "Bachelor / Master Degree Program",
-          degreeLevel: "Master",
-          fieldOfStudy: "Engineering / Computer Science",
-          languageOfInstruction: "French",
-          durationMonths: 24,
-          tuitionFeeAnnual: 0,
-          currency: "MAD",
-          applicationDeadline: "2025-05-31",
-          academicCycle: "2025/2026"
-        }
-      },
-      claimEvidences: evidences
-    };
 
     IN_MEMORY_PROPOSED_RECORDS.unshift(proposedRecord);
-
-    logs.push({
-      id: `log-${Date.now()}-4`,
-      taskId,
-      logLevel: "info",
-      message: `Deterministic validation complete. Staged proposed record (${proposedRecord.id}) for human admin review.`,
-      timestamp: new Date().toISOString()
-    });
 
     const task: ResearchTask = {
       id: taskId,
       instruction: input.instruction,
       taskType: input.taskType || "research_university",
-      status: "completed",
+      status: "pending",
       targetInstitution: targetInst,
       targetCountry: input.targetCountry || "Morocco",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       logs,
-      proposedRecords: [proposedRecord]
+      proposedRecords: [proposedRecord],
     };
 
     IN_MEMORY_RESEARCH_TASKS.unshift(task);
-
     return task;
   }
 
@@ -284,7 +224,6 @@ export class ResearchAgentService {
 
     if (action === "approve") {
       record.reviewStatus = "approved";
-      record.verificationStatus = "VERIFIED";
       record.reviewedAt = new Date().toISOString();
       if (editedData) record.proposedData = { ...record.proposedData, ...editedData };
 
