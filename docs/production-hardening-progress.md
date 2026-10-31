@@ -13,6 +13,7 @@
 - Refined responsive navigation, focus states, reduced-motion support, page metadata, and browser theme colour.
 - Updated admin-security and AI-guidance tests to reflect the stricter behavior.
 - Upgraded the framework runtime to Next.js 16 and React 19, refreshed the npm lockfile automatically, and updated dynamic route parameter handling.
+- Upgraded Vitest, Vite, the React Vite plugin, and Zod to patched releases; the regenerated dependency tree reports **0 npm audit vulnerabilities**.
 - Added a GitHub Actions workflow for TypeScript, unit tests, and production build.
 - Updated README and environment examples to explain demo limitations and production configuration.
 
@@ -26,4 +27,4 @@
 7. Configure deployment secrets, Supabase migrations, domain, and hosting; complete a production smoke test.
 
 ## Validation status
-GitHub Actions is running the dependency-updated validation pipeline. Earlier runs exposed and helped fix TypeScript, test, and workflow setup issues; the latest branch commit still requires a completed green CI run. Do not claim a passing build or deploy until the latest workflow has completed successfully and the live deployment has been smoke-tested.
+The regenerated dependency tree reports zero npm audit vulnerabilities. Earlier Next.js 16 CI runs passed TypeScript, unit tests, and production build. The latest Vitest 5 / Vite 8 / Zod 4 dependency combination still requires its own completed green CI run. Do not claim a final release until that run succeeds and the live deployment has been smoke-tested.
