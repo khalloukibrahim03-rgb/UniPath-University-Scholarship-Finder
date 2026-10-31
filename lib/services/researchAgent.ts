@@ -228,7 +228,7 @@ export class ResearchAgentService {
         !record.claimEvidences?.length ||
         record.claimEvidences.some((item) =>
           item.verificationStatus !== "VERIFIED" ||
-          !/^https?:\\/\\//i.test(item.sourceUrl) ||
+          !/^https?:\/\//i.test(item.sourceUrl) ||
           !item.sourceTitle?.trim() ||
           !item.evidenceExcerpt?.trim()
         )
