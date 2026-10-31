@@ -12,7 +12,8 @@
 - Rebuilt the homepage with a responsive editorial-style layout, destination shortcuts, discovery sections, source-check reminders, and a clearer call to action.
 - Refined responsive navigation, focus states, reduced-motion support, page metadata, and browser theme colour.
 - Updated admin-security and AI-guidance tests to reflect the stricter behavior.
-- Added a GitHub Actions workflow for TypeScript, lint, unit tests, and production build.
+- Upgraded the framework runtime to Next.js 16 and React 19, refreshed the npm lockfile automatically, and updated dynamic route parameter handling.
+- Added a GitHub Actions workflow for TypeScript, unit tests, and production build.
 - Updated README and environment examples to explain demo limitations and production configuration.
 
 ## Still required before a production launch
@@ -25,4 +26,4 @@
 7. Configure deployment secrets, Supabase migrations, domain, and hosting; complete a production smoke test.
 
 ## Validation status
-The GitHub source changes and CI workflow are committed. This execution environment did not run `npm ci`, `tsc`, Vitest, or `next build`. The workflow run could not be confirmed through the available GitHub run lookup. Do not claim a passing build or deploy until the workflow has completed successfully and the live deployment has been smoke-tested.
+GitHub Actions is running the dependency-updated validation pipeline. Earlier runs exposed and helped fix TypeScript, test, and workflow setup issues; the latest branch commit still requires a completed green CI run. Do not claim a passing build or deploy until the latest workflow has completed successfully and the live deployment has been smoke-tested.
