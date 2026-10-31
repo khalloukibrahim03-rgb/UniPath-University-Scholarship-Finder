@@ -56,8 +56,8 @@ export default async function UniversityDetailPage({ params }: PageProps) {
 
         <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-4 text-slate-600">
-            <span>National Rank: <strong>#{university.rankingNational || "N/A"}</strong></span>
-            <span>Global Rank: <strong>#{university.rankingGlobal || "N/A"}</strong></span>
+            {university.verificationStatus === "verified" && <span>National Rank: <strong>#{university.rankingNational || "N/A"}</strong></span>}
+            {university.verificationStatus === "verified" && <span>Global Rank: <strong>#{university.rankingGlobal || "N/A"}</strong></span>}
           </div>
 
           <div className="flex items-center gap-3">
