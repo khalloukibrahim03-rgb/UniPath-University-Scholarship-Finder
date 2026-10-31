@@ -6,11 +6,11 @@ UniPath is an open, student-centered educational discovery and guidance platform
 
 ## 🚀 Key Features
 
-- 🏛️ **University Discovery:** Search and filter verified universities across France, Germany, China, Morocco, and globally.
-- 💰 **Scholarship Finder:** Search full-ride, full-tuition, and stipend scholarships tailored for African and international candidates.
-- 📋 **Application Dashboard:** Bookmark programs, track application milestones (Saved -> Preparing Docs -> Submitted), and manage interactive checklists.
-- 🤖 **Zero-Cost Grounded AI Guidance:** Get clear, source-cited explanations of application procedures without needing paid API keys.
-- 🛡️ **Source Provenance:** Every deadline and requirement includes a verification status badge and link to official university portals.
+- 🏛️ **University Discovery:** Search the currently bundled catalogue. Treat seed/demo entries as examples until independently verified against official sources.
+- 💰 **Scholarship Finder:** Explore catalogue scholarship entries and confirm deadlines and eligibility on the provider's official website.
+- 📋 **Application Dashboard:** Preview application milestones and checklists. Persistent, per-account application storage requires the Supabase integration to be completed.
+- 🤖 **Catalogue-Based Guidance:** Search matching catalogue entries. Results are potential matches, not automated eligibility decisions.
+- 🛡️ **Source Provenance:** Records should only be treated as verified when the individual claim has current supporting evidence.
 
 ---
 
@@ -33,12 +33,12 @@ UniPath is an open, student-centered educational discovery and guidance platform
    npm install
    ```
 
-3. **Set up Environment Variables (Optional):**
+3. **Set up Environment Variables:**
    Copy `.env.example` to `.env.local`:
    ```bash
    cp .env.example .env.local
    ```
-   *Note: The application runs completely offline using local seed data out of the box without requiring API keys!*
+   Admin API routes remain disabled unless `ADMIN_SECRET` is configured with a random value of at least 32 characters. Supabase credentials are needed for persistent production data; without them, local seed data is demo-only.
 
 4. **Run the Development Server:**
    ```bash
@@ -57,7 +57,7 @@ UniPath is an open, student-centered educational discovery and guidance platform
 
 1. Push your repository to GitHub.
 2. Import the project into Vercel.
-3. No environment variables are strictly required for the demo, but you may supply `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` if connected to a live Supabase database.
+3. Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and a strong server-side `ADMIN_SECRET` in Vercel project settings. Configure `ADMIN_EMAIL` if you want an additional email-header restriction. Do not commit real secrets.
 4. Deploy!
 
 ---
