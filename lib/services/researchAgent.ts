@@ -223,11 +223,25 @@ export class ResearchAgentService {
     if (!record) return undefined;
 
     if (action === "approve") {
+      if (
+        record.verificationStatus !== "VERIFIED" ||
+        !record.claimEvidences?.length ||
+        record.claimEvidences.some((item) =>
+          item.verificationStatus !== "VERIFIED" ||
+          !/^https?:\\/\\//i.test(item.sourceUrl) ||
+          !item.sourceTitle?.trim() ||
+          !item.evidenceExcerpt?.trim()
+        )
+      ) {
+        record.reviewStatus = "deferred";
+        record.rejectionReason = "Approval is blocked until every required claim has current, verified source evidence.";
+        record.reviewedAt = new Date().toISOString();
+        return record;
+      }
+
+      if (editedData) record.proposedData = { ...record.proposedData, ...editedData };
       record.reviewStatus = "approved";
       record.reviewedAt = new Date().toISOString();
-      if (editedData) record.proposedData = { ...record.proposedData, ...editedData };
-
-      // Publish into public database / DataService
       DataService.publishApprovedRecord(record);
     } else if (action === "reject") {
       record.reviewStatus = "rejected";
