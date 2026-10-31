@@ -51,7 +51,7 @@ export const UniversityCard: React.FC<UniversityCardProps> = ({ university }) =>
             </div>
             <p className="text-sm font-semibold text-slate-900 line-clamp-1">{primaryProgram.title}</p>
             <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
-              <span>Tuition: {formatCurrency(primaryProgram.tuitionFeeAnnual, primaryProgram.currency)}/yr</span>
+              <span>Tuition: {primaryProgram.verificationStatus === "verified" ? `${formatCurrency(primaryProgram.tuitionFeeAnnual, primaryProgram.currency)}/yr` : "Confirm on official portal"}</span>
               <span>Degree: {primaryProgram.degreeLevel}</span>
             </div>
           </div>
