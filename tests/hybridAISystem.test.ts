@@ -49,9 +49,10 @@ describe("System A — research queue safety", () => {
     const candidate = records[0];
     const approved = ResearchAgentService.reviewProposedRecord(candidate.id, "approve");
 
-    expect(approved?.reviewStatus).toBe("approved");
+    expect(approved?.reviewStatus).toBe("deferred");
     expect(approved?.verificationStatus).not.toBe("VERIFIED");
     expect(approved?.reviewedAt).toBeDefined();
+    expect(approved?.rejectionReason).toContain("verified source evidence");
     expect(DataService.getUniversityById(candidate.id)).toBeUndefined();
   });
 
