@@ -9,11 +9,12 @@ import { Award, Calendar, ExternalLink, ArrowLeft, CheckCircle2, Bookmark } from
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function ScholarshipDetailPage({ params }: PageProps) {
-  const scholarship = DataService.getScholarshipById(params.id);
+export default async function ScholarshipDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const scholarship = DataService.getScholarshipById(id);
 
   if (!scholarship) {
     notFound();
