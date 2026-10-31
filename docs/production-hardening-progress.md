@@ -27,4 +27,4 @@
 7. Configure deployment secrets, Supabase migrations, domain, and hosting; complete a production smoke test.
 
 ## Validation status
-The regenerated dependency tree reports zero npm audit vulnerabilities. Earlier Next.js 16 CI runs passed TypeScript, unit tests, and production build. The latest Vitest 5 / Vite 8 / Zod 4 dependency combination still requires its own completed green CI run. Do not claim a final release until that run succeeds and the live deployment has been smoke-tested.
+The latest GitHub Actions run passed dependency installation, npm audit (0 vulnerabilities), TypeScript, all unit tests, and the Next.js production build on the current development branch. A live deployment and production smoke test have not yet been performed.
