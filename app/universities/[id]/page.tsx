@@ -52,6 +52,7 @@ export default async function UniversityDetailPage({ params }: PageProps) {
         </div>
 
         <p className="text-sm text-slate-700 leading-relaxed max-w-3xl">{university.description}</p>
+        {university.verificationStatus !== "verified" && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-950">Sample catalogue entry — programmes, fees, and admission requirements are not verified for a current intake. Confirm details with the institution’s official admissions office.</p>}
 
         <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-4 text-slate-600">
@@ -93,10 +94,10 @@ export default async function UniversityDetailPage({ params }: PageProps) {
                 </div>
                 <CardTitle className="text-xl font-bold text-blue-950 mt-1">{program.title}</CardTitle>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
-                  <span>Language: <strong>{program.languageOfInstruction}</strong></span>
-                  <span>Duration: <strong>{program.durationMonths} months</strong></span>
-                  <span>Annual Tuition: <strong className="text-blue-900">{formatCurrency(program.tuitionFeeAnnual, program.currency)}</strong></span>
-                  {program.applicationDeadline && (
+                  {program.verificationStatus === "verified" && <span>Language: <strong>{program.languageOfInstruction}</strong></span>}
+                  {program.verificationStatus === "verified" && <span>Duration: <strong>{program.durationMonths} months</strong></span>}
+                  <span>Annual Tuition: <strong className="text-blue-900">{program.verificationStatus === "verified" ? formatCurrency(program.tuitionFeeAnnual, program.currency) : "Confirm on official portal"}</strong></span>
+                  {program.verificationStatus === "verified" && program.applicationDeadline && (
                     <span className="flex items-center gap-1 text-amber-800 font-semibold">
                       <Calendar className="w-3.5 h-3.5" /> Deadline: {program.applicationDeadline}
                     </span>
@@ -105,7 +106,7 @@ export default async function UniversityDetailPage({ params }: PageProps) {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-900">Mandatory Admission Prerequisites & Documents:</h3>
+                <h3 className="text-sm font-bold text-slate-900">Admission prerequisites & documents:</h3>
                 {program.requirements && program.requirements.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {program.requirements.map((req) => (
