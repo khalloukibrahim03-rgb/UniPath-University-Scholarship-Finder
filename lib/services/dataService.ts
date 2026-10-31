@@ -90,101 +90,97 @@ export class DataService {
    * Publish an approved proposed record into the public database
    */
   static publishApprovedRecord(record: ProposedRecord): void {
-    if (record.reviewStatus !== "approved") return;
+    // Approval is a workflow decision, not proof that the underlying facts are correct.
+    // Never publish a record unless its verification state and field-level evidence agree.
+    if (record.reviewStatus !== "approved" || record.verificationStatus !== "VERIFIED") return;
+
+    const evidence = record.claimEvidences || [];
+    const hasVerifiedEvidence = (fieldName: string) =>
+      evidence.some((item) =>
+        item.fieldName === fieldName &&
+        item.verificationStatus === "VERIFIED" &&
+        /^https?:\\/\\//i.test(item.sourceUrl) &&
+        Boolean(item.sourceTitle?.trim()) &&
+        Boolean(item.evidenceExcerpt?.trim())
+      );
 
     if (record.entityType === "university") {
       const p = record.proposedData;
-      const featuredProg = p.featuredProgram
-        ? [
-            {
-              id: `prog-pub-${Date.now()}`,
-              universityId: record.id,
-              universityName: p.name,
-              universityCountry: p.country,
-              title: p.featuredProgram.title,
-              degreeLevel: p.featuredProgram.degreeLevel || "Master",
-              fieldOfStudy: p.featuredProgram.fieldOfStudy || "Engineering",
-              languageOfInstruction: p.featuredProgram.languageOfInstruction || "French",
-              durationMonths: p.featuredProgram.durationMonths || 24,
-              tuitionFeeAnnual: p.featuredProgram.tuitionFeeAnnual || 0,
-              currency: p.featuredProgram.currency || "MAD",
-              applicationDeadline: p.featuredProgram.applicationDeadline,
-              academicCycle: p.featuredProgram.academicCycle || "2025/2026",
-              verificationStatus: "verified" as const,
-              verifiedAt: new Date().toISOString().split("T")[0],
-              sourceUrl: p.sourceUrl || p.websiteUrl,
-              requirements: [
-                {
-                  id: `req-pub-${Date.now()}`,
-                  programId: `prog-pub-${Date.now()}`,
-                  requirementType: "Academic Record" as const,
-                  title: "Diplôme / Licence Equivalent",
-                  description: "Verified academic background criteria from official portal.",
-                  isMandatory: true,
-                  acceptedQualifications: ["DEUG / Licence / Baccalauréat"],
-                  verificationStatus: "verified" as const,
-                },
-              ],
-            },
-          ]
-        : [];
+      const requiredFields = ["name", "country", "city", "websiteUrl", "sourceUrl"];
+      if (
+        requiredFields.some((field) => !p[field] || !String(p[field]).trim() || !hasVerifiedEvidence(field))
+      ) return;
 
       const newUni: University = {
         id: record.id,
         name: p.name,
         slug: p.slug || record.id,
-        country: p.country || "Morocco",
-        city: p.city || "Rabat",
+        country: p.country,
+        city: p.city,
         websiteUrl: p.websiteUrl,
-        description: p.description || "Verified public institution profile.",
-        rankingNational: p.rankingNational || 1,
-        isPublic: p.isPublic !== undefined ? p.isPublic : true,
+        description: p.description || "Institution profile; see the official source for current details.",
+        rankingNational: p.rankingNational,
+        isPublic: p.isPublic,
         verificationStatus: "verified",
         dataQualityState: "VERIFIED",
-        verifiedAt: new Date().toISOString().split("T")[0],
-        sourceUrl: p.sourceUrl || p.websiteUrl,
-        programsCount: featuredProg.length,
-        featuredPrograms: featuredProg,
-        claimEvidences: record.claimEvidences,
+        verifiedAt: evidence
+          .map((item) => item.verifiedAt)
+          .filter(Boolean)
+          .sort()
+          .at(-1) || new Date().toISOString().split("T")[0],
+        sourceUrl: p.sourceUrl,
+        programsCount: 0,
+        featuredPrograms: [],
+        claimEvidences: evidence,
       };
 
-      // Check if already published
       const existingIdx = PUBLISHED_UNIVERSITIES.findIndex((u) => u.id === record.id);
-      if (existingIdx >= 0) {
-        PUBLISHED_UNIVERSITIES[existingIdx] = newUni;
-      } else {
-        PUBLISHED_UNIVERSITIES.unshift(newUni);
-      }
+      if (existingIdx >= 0) PUBLISHED_UNIVERSITIES[existingIdx] = newUni;
+      else PUBLISHED_UNIVERSITIES.unshift(newUni);
     } else if (record.entityType === "scholarship") {
       const p = record.proposedData;
+      const requiredFields = [
+        "title", "providerName", "applicationDeadline", "applicationUrl",
+        "sourceUrl", "coverageType", "eligibleDegrees",
+      ];
+      if (
+        requiredFields.some((field) => {
+          const value = p[field];
+          return value === undefined || value === null || value === "" ||
+            (Array.isArray(value) && value.length === 0) || !hasVerifiedEvidence(field);
+        })
+      ) return;
+
       const newSch: Scholarship = {
         id: record.id,
-        title: p.title || p.name,
+        title: p.title,
         slug: p.slug || record.id,
-        providerName: p.providerName || "Official Provider",
-        targetCountries: p.targetCountries || ["Morocco", "Africa"],
-        destinationCountries: p.destinationCountries || ["Morocco"],
-        coverageType: p.coverageType || "Full Ride",
-        stipendAmountAnnual: p.stipendAmountAnnual || 0,
-        currency: p.currency || "MAD",
-        eligibleDegrees: p.eligibleDegrees || ["Master"],
-        applicationDeadline: p.applicationDeadline || "2025-06-30",
-        applicationUrl: p.applicationUrl || p.websiteUrl,
+        providerName: p.providerName,
+        targetCountries: p.targetCountries || [],
+        destinationCountries: p.destinationCountries || [],
+        coverageType: p.coverageType,
+        stipendAmountAnnual: p.stipendAmountAnnual,
+        currency: p.currency || "EUR",
+        eligibleDegrees: p.eligibleDegrees,
+        applicationDeadline: p.applicationDeadline,
+        academicCycle: p.academicCycle,
+        applicationUrl: p.applicationUrl,
         verificationStatus: "verified",
         dataQualityState: "VERIFIED",
-        verifiedAt: new Date().toISOString().split("T")[0],
-        sourceUrl: p.sourceUrl || p.websiteUrl,
-        description: p.description || "Verified scholarship program.",
-        requirementsList: p.requirementsList || ["Official application submission"],
-        claimEvidences: record.claimEvidences,
+        verifiedAt: evidence
+          .map((item) => item.verifiedAt)
+          .filter(Boolean)
+          .sort()
+          .at(-1) || new Date().toISOString().split("T")[0],
+        sourceUrl: p.sourceUrl,
+        description: p.description || "Scholarship details; see the official source for current information.",
+        requirementsList: p.requirementsList || [],
+        claimEvidences: evidence,
       };
 
       const existingIdx = PUBLISHED_SCHOLARSHIPS.findIndex((s) => s.id === record.id);
-      if (existingIdx >= 0) {
-        PUBLISHED_SCHOLARSHIPS[existingIdx] = newSch;
-      } else {
-        PUBLISHED_SCHOLARSHIPS.unshift(newSch);
-      }
+      if (existingIdx >= 0) PUBLISHED_SCHOLARSHIPS[existingIdx] = newSch;
+      else PUBLISHED_SCHOLARSHIPS.unshift(newSch);
     }
   }
 
