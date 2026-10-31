@@ -28,9 +28,9 @@ export default function ScholarshipsPage() {
           <Award className="w-5 h-5 text-amber-500" />
           <span>Scholarship & Financial Aid Database</span>
         </div>
-        <h1 className="text-3xl font-black text-blue-950">Find Verified Scholarships & Grants</h1>
+        <h1 className="text-3xl font-black text-blue-950">Explore Scholarships & Grants</h1>
         <p className="text-sm text-slate-600 max-w-2xl">
-          Search fully funded scholarships, tuition waivers, and monthly living stipends available to international students from Morocco and Africa.
+          Browse sample funding listings, then confirm current eligibility, funding coverage, and deadlines directly with the official scholarship provider.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default function ScholarshipsPage() {
 
       {/* Results Count */}
       <div className="text-xs font-semibold text-slate-500">
-        Showing {scholarships.length} verified scholarship opportunities
+        Showing {scholarships.length} catalogue funding listings
       </div>
 
       {/* Grid */}
