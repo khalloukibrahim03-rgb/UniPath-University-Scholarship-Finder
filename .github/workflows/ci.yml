@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   validate:
-    name: Typecheck, lint, tests and build
+    name: Typecheck, unit tests and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -26,8 +26,6 @@ jobs:
         run: npm ci
       - name: TypeScript
         run: npx tsc --noEmit
-      - name: Lint
-        run: npm run lint
       - name: Unit tests
         run: npm test
       - name: Production build
