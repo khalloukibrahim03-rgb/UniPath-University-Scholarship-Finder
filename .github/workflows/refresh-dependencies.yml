@@ -25,7 +25,9 @@ jobs:
         with:
           node-version: 22
       - name: Resolve declared dependencies
-        run: npm install --package-lock-only --ignore-scripts
+        run: |
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts
       - name: Apply compatible security patches
         run: npm audit fix --package-lock-only || echo "Some advisories may need explicit upgrades."
       - name: Commit refreshed lockfile
