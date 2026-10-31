@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 export const Navbar: React.FC = () => {
-  const pathname = usePathname();
+  const pathname = usePathname() || "/";
   const [mobileOpen, setMobileOpen] = useState(false);
   const navItems = [
     { label: "Universities", href: "/universities", icon: GraduationCap },
