@@ -18,7 +18,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship })
       <CardHeader>
         <div className="flex items-start justify-between gap-2 mb-2">
           <Badge variant="secondary" className="bg-amber-100 text-amber-900 border-amber-200">
-            {scholarship.coverageType}
+            {scholarship.verificationStatus === "verified" ? scholarship.coverageType : `Sample · ${scholarship.coverageType}`}
           </Badge>
           <SourceBadge
             status={scholarship.verificationStatus}
