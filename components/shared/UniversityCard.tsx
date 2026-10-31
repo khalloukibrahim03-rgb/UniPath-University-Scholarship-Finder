@@ -60,7 +60,7 @@ export const UniversityCard: React.FC<UniversityCardProps> = ({ university }) =>
 
       <CardFooter className="flex items-center justify-between">
         <div className="text-xs text-slate-500">
-          Global Rank: #{university.rankingGlobal || "N/A"}
+          Global Rank: {university.verificationStatus === "verified" ? `#${university.rankingGlobal || "N/A"}` : "Not verified"}
         </div>
         <Link href={`/universities/${university.id}`}>
           <Button size="sm" variant="primary" className="flex items-center gap-1">
