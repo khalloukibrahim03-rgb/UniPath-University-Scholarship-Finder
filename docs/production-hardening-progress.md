@@ -1,22 +1,28 @@
-# UniPath production hardening — current implementation status
+# UniPath — Production hardening and product polish
 
-This branch is an isolated improvement branch. The original branch is unchanged.
+**Working branch:** `feat/unipath-production-hardening`
+**Base branch:** `feat/unipath-technical-foundation-9414686074726037842`
 
-## Implemented in this pass
-- Admin API authorization now requires a configured server-side `ADMIN_SECRET` of at least 32 characters in development and production. The weak development passkey bypass is removed.
-- Removed the personal admin email fallback from application code and the example environment file. `ADMIN_EMAIL` is now optional deployment configuration.
-- AI guidance no longer emits hard-coded country-specific tuition, stipend, language, admissions, or deadline claims. It searches the local catalogue and only cites matching entries marked verified with valid HTTP(S) source URLs and non-expired scholarship deadlines. It labels results as potential matches, not eligibility decisions.
-- Publishing proposed universities and scholarships now requires explicit approval, a VERIFIED record state, required fields, and matching VERIFIED field-level evidence with source URL, source title, and excerpt. Fabricated default dates, fees, rankings, and eligibility requirements were removed.
-- README and environment examples now distinguish demo catalogue behavior from production persistence and explain required admin configuration.
+## Completed in this branch
+- Hardened admin API authorization: a server-side `ADMIN_SECRET` of at least 32 characters is mandatory in all environments; the weak development passkey fallback was removed.
+- Removed the personal admin-email fallback from source code and example environment settings. An optional `ADMIN_EMAIL` restriction must be explicitly configured.
+- Replaced canned AI claims about tuition, stipends, admission procedures, language scores, and deadlines with conservative catalogue search. Results are labelled as potential matches, not eligibility decisions.
+- Added a publication gate requiring explicit approval, a VERIFIED record state, required fields, and field-level VERIFIED evidence with valid source URLs and excerpts.
+- Marked bundled sample university, program, and scholarship entries as unverified. Seed data is demonstration content, not proof of current admission or funding availability.
+- Rebuilt the homepage with a responsive editorial-style layout, destination shortcuts, discovery sections, source-check reminders, and a clearer call to action.
+- Refined responsive navigation, focus states, reduced-motion support, page metadata, and browser theme colour.
+- Updated admin-security and AI-guidance tests to reflect the stricter behavior.
+- Added a GitHub Actions workflow for TypeScript, lint, unit tests, and production build.
+- Updated README and environment examples to explain demo limitations and production configuration.
 
-## Important remaining work
-This is not a claim that every module is production-complete. The following require further implementation and environment-specific validation:
-1. Replace in-memory catalogue, research queue, and application tracking with Supabase repositories and server-side authenticated access.
-2. Add account-level student profile/application CRUD, ownership checks, deletion flows, and RLS integration tests.
-3. Add rate limiting and abuse controls to public AI guidance and admin endpoints.
-4. Build and test research worker ingestion, source snapshots, deadline re-check scheduling, and human review/audit persistence.
-5. Add schema migration validation, CI build/typecheck/test jobs, and end-to-end tests.
-6. Audit all seed records and mark unsupported or stale claims as DEMO_ONLY/OUTDATED until verified from official sources.
+## Still required before a production launch
+1. Complete Supabase-backed repositories for catalogue, research tasks, evidence, and student applications.
+2. Add real sign-in and enforce per-user ownership for profiles and application records; validate all RLS policies against an actual Supabase project.
+3. Add server-side rate limiting and abuse controls to public and admin APIs.
+4. Implement persistent research worker scheduling, source snapshots, deadline monitoring, and complete admin audit trails.
+5. Add end-to-end browser tests and test real mobile, keyboard, and screen-reader flows.
+6. Audit all external URLs, current academic cycles, deadlines, tuition, and eligibility directly with each official provider.
+7. Configure deployment secrets, Supabase migrations, domain, and hosting; complete a production smoke test.
 
-## Validation
-The GitHub connector was used to commit source changes. A local install, Next.js build, TypeScript check, and Vitest run have not been executed in this environment. Do not deploy until CI and Supabase configuration are verified.
+## Validation status
+The GitHub source changes and CI workflow are committed. This execution environment did not run `npm ci`, `tsc`, Vitest, or `next build`. The workflow run could not be confirmed through the available GitHub run lookup. Do not claim a passing build or deploy until the workflow has completed successfully and the live deployment has been smoke-tested.
