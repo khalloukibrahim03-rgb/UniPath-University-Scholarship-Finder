@@ -17,8 +17,8 @@ UniPath is an open, student-centered educational discovery and guidance platform
 ## ⚙️ Getting Started Locally
 
 ### Prerequisites
-- Node.js 18.x or 20.x
-- npm 9+
+- Node.js 22.x or newer
+- npm 10+
 
 ### Quick Start
 
