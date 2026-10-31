@@ -16,7 +16,7 @@ export const Footer: React.FC = () => {
               <span className="text-xl font-bold text-white tracking-tight">UniPath</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Empowering students from Morocco and broader African regions with source-verified higher education discovery, financial aid tracking, and grounded guidance.
+              Helping students explore study destinations, discover funding options, and plan their next academic step with clearer information.
             </p>
           </div>
 
@@ -70,7 +70,7 @@ export const Footer: React.FC = () => {
             <div className="flex items-start gap-2 text-xs text-slate-400 bg-slate-800/80 p-3 rounded-lg border border-slate-700">
               <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
               <span>
-                Zero hallucinated deadlines. Every requirement links directly to verified university portals.
+                Catalogue entries are examples until confirmed. Always use official provider websites for current requirements and deadlines.
               </span>
             </div>
           </div>
