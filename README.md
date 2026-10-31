@@ -16,8 +16,10 @@ UniPath is an open, student-centered educational discovery and guidance platform
 
 ## ⚙️ Getting Started Locally
 
+The current development branch uses Next.js 16 and React 19. Install dependencies with the committed lockfile using `npm ci`.
+
 ### Prerequisites
-- Node.js 22.x or newer
+- Node.js 22.x or newer (Next.js 16)
 - npm 10+
 
 ### Quick Start
