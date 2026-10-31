@@ -99,7 +99,7 @@ export class DataService {
       evidence.some((item) =>
         item.fieldName === fieldName &&
         item.verificationStatus === "VERIFIED" &&
-        /^https?:\\/\\//i.test(item.sourceUrl) &&
+        /^https?:\/\//i.test(item.sourceUrl) &&
         Boolean(item.sourceTitle?.trim()) &&
         Boolean(item.evidenceExcerpt?.trim())
       );
