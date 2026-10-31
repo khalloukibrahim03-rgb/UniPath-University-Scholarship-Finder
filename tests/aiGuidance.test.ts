@@ -1,25 +1,35 @@
 import { describe, it, expect } from "vitest";
 import { AIGuidanceService } from "@/lib/services/aiGuidance";
 
-describe("AIGuidanceService Local Engine", () => {
-  it("should generate grounded guidance for Campus France queries", async () => {
+describe("AIGuidanceService", () => {
+  it("does not invent admission rules or eligibility decisions", async () => {
     const res = await AIGuidanceService.generateGuidance({
       query: "How do I apply for Sorbonne via Campus France?",
     });
 
-    expect(res.answerMarkdown).toContain("Campus France");
     expect(res.isFallbackEngine).toBe(true);
-    expect(res.confidenceScore).toBe(0.95);
-    expect(res.citedSources.length).toBeGreaterThan(0);
+    expect(res.classification).not.toBe("Matches Documented Criteria");
+    expect(res.confidenceScore).toBeLessThanOrEqual(0.55);
+    expect(res.answerMarkdown).toContain("eligibility");
     expect(res.suggestedChecklist?.length).toBeGreaterThan(0);
   });
 
-  it("should generate grounded guidance for scholarship queries", async () => {
+  it("returns a safe insufficient-information result for unknown queries", async () => {
     const res = await AIGuidanceService.generateGuidance({
-      query: "What full ride scholarships are available?",
+      query: "A completely unknown subject that is not in the catalogue",
     });
 
-    expect(res.answerMarkdown).toContain("Scholarship");
-    expect(res.citedSources.length).toBeGreaterThan(0);
+    expect(res.classification).toBe("Insufficient Information");
+    expect(res.citedSources).toHaveLength(0);
+    expect(res.confidenceScore).toBeLessThan(0.5);
+  });
+
+  it("never presents a result as a confirmed eligibility decision", async () => {
+    const res = await AIGuidanceService.generateGuidance({
+      query: "scholarship",
+      studentProfile: { nationality: "Moroccan", educationLevel: "Master" },
+    });
+
+    expect(res.classification).not.toBe("Matches Documented Criteria");
   });
 });
