@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { UniversityCard } from "@/components/shared/UniversityCard";
 import { DataService } from "@/lib/services/dataService";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,11 @@ import { GraduationCap, Search, Filter } from "lucide-react";
 export default function UniversitiesPage() {
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("All");
+
+  useEffect(() => {
+    const initialCountry = new URLSearchParams(window.location.search).get("country");
+    if (initialCountry) setCountry(initialCountry);
+  }, []);
   const [maxTuition, setMaxTuition] = useState<number>(0);
 
   const availableCountries = DataService.getAvailableCountries();
@@ -28,9 +33,9 @@ export default function UniversitiesPage() {
           <GraduationCap className="w-5 h-5 text-amber-500" />
           <span>University Discovery Directory</span>
         </div>
-        <h1 className="text-3xl font-black text-blue-950">Explore Verified Universities & Programs</h1>
+        <h1 className="text-3xl font-black text-blue-950">Explore Universities & Programs</h1>
         <p className="text-sm text-slate-600 max-w-2xl">
-          Search accredited public and private universities with source-verified application requirements, tuition breakdown, and direct official portal links.
+          Explore the current sample catalogue of institutions and programs. Confirm admissions, fees, and entry requirements on each institution’s official website.
         </p>
       </div>
 
@@ -76,7 +81,7 @@ export default function UniversitiesPage() {
 
       {/* Results Count */}
       <div className="text-xs font-semibold text-slate-500">
-        Showing {universities.length} verified university profiles
+        Showing {universities.length} catalogue institution profiles
       </div>
 
       {/* Grid */}
