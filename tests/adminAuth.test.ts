@@ -1,70 +1,65 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
-import { isAuthorizedAdmin, isAuthorizedAdminEmail, PRIMARY_ADMIN_EMAIL } from "@/lib/utils/adminAuth";
+import { isAuthorizedAdmin, isAuthorizedAdminEmail } from "@/lib/utils/adminAuth";
 
-describe("Admin Authorization Security Module", () => {
-  const TEST_SECRET = "unipath-test-admin-secret-2026";
+describe("Admin authorization", () => {
+  const TEST_SECRET = "unipath-test-admin-secret-2026-with-strong-entropy";
   const originalSecret = process.env.ADMIN_SECRET;
+  const originalEmail = process.env.ADMIN_EMAIL;
 
   beforeEach(() => {
     process.env.ADMIN_SECRET = TEST_SECRET;
+    process.env.ADMIN_EMAIL = "admin@example.com";
   });
 
   afterEach(() => {
-    process.env.ADMIN_SECRET = originalSecret;
+    if (originalSecret === undefined) delete process.env.ADMIN_SECRET;
+    else process.env.ADMIN_SECRET = originalSecret;
+    if (originalEmail === undefined) delete process.env.ADMIN_EMAIL;
+    else process.env.ADMIN_EMAIL = originalEmail;
   });
 
-  it("validates primary admin email ibrahimkhallouki2@gmail.com", () => {
-    expect(isAuthorizedAdminEmail(PRIMARY_ADMIN_EMAIL)).toBe(true);
-    expect(isAuthorizedAdminEmail("IBRAHIMKHALLOUKI2@GMAIL.COM")).toBe(true);
-    expect(isAuthorizedAdminEmail(" ibrahimkhallouki2@gmail.com ")).toBe(true);
-  });
-
-  it("strictly rejects unauthorized emails", () => {
-    expect(isAuthorizedAdminEmail("unauthorized@example.com")).toBe(false);
-    expect(isAuthorizedAdminEmail("attacker@gmail.com")).toBe(false);
-    expect(isAuthorizedAdminEmail("ibrahimkhallouki2@gmail.com.fake")).toBe(false);
-    expect(isAuthorizedAdminEmail("")).toBe(false);
+  it("requires an explicitly configured admin email", () => {
+    expect(isAuthorizedAdminEmail("admin@example.com")).toBe(true);
+    expect(isAuthorizedAdminEmail(" ADMIN@EXAMPLE.COM ")).toBe(true);
+    expect(isAuthorizedAdminEmail("other@example.com")).toBe(false);
     expect(isAuthorizedAdminEmail(null)).toBe(false);
-    expect(isAuthorizedAdminEmail(undefined)).toBe(false);
+    delete process.env.ADMIN_EMAIL;
+    expect(isAuthorizedAdminEmail("admin@example.com")).toBe(false);
   });
 
-  it("authorizes requests with whitelisted admin email header AND valid admin secret", () => {
-    const req = new NextRequest("http://localhost:3000/api/admin/research-tasks", {
-      headers: {
-        "x-admin-email": "ibrahimkhallouki2@gmail.com",
-        "x-admin-secret": TEST_SECRET,
-      },
+  it("authorizes a valid configured secret", () => {
+    const req = new NextRequest("http://localhost/api/admin", {
+      headers: { "x-admin-secret": TEST_SECRET },
     });
     expect(isAuthorizedAdmin(req)).toBe(true);
   });
 
-  it("authorizes requests with Bearer secret token", () => {
-    const req = new NextRequest("http://localhost:3000/api/admin/research-tasks", {
+  it("supports bearer authorization", () => {
+    const req = new NextRequest("http://localhost/api/admin", {
       headers: { authorization: `Bearer ${TEST_SECRET}` },
     });
     expect(isAuthorizedAdmin(req)).toBe(true);
   });
 
-  it("CRITICAL SECURITY: rejects unauthenticated requests even if spoofing x-admin-email header without valid secret", () => {
-    const req = new NextRequest("http://localhost:3000/api/admin/research-tasks", {
-      headers: { "x-admin-email": "ibrahimkhallouki2@gmail.com" },
-    });
-    expect(isAuthorizedAdmin(req)).toBe(false);
+  it("rejects missing, short, or incorrect secrets", () => {
+    expect(isAuthorizedAdmin(new NextRequest("http://localhost/api/admin"))).toBe(false);
+    expect(isAuthorizedAdmin(new NextRequest("http://localhost/api/admin", {
+      headers: { "x-admin-secret": "wrong-secret-value-that-is-long-enough-123" },
+    }))).toBe(false);
+    process.env.ADMIN_SECRET = "short";
+    expect(isAuthorizedAdmin(new NextRequest("http://localhost/api/admin", {
+      headers: { "x-admin-secret": "short" },
+    }))).toBe(false);
   });
 
-  it("rejects requests with unauthorized email even if valid secret is supplied", () => {
-    const req = new NextRequest("http://localhost:3000/api/admin/research-tasks", {
+  it("rejects a mismatched optional admin email header", () => {
+    const req = new NextRequest("http://localhost/api/admin", {
       headers: {
-        "x-admin-email": "hacker@domain.com",
         "x-admin-secret": TEST_SECRET,
+        "x-admin-email": "attacker@example.com",
       },
     });
-    expect(isAuthorizedAdmin(req)).toBe(false);
-  });
-
-  it("rejects completely unauthenticated requests", () => {
-    const req = new NextRequest("http://localhost:3000/api/admin/research-tasks");
     expect(isAuthorizedAdmin(req)).toBe(false);
   });
 });
