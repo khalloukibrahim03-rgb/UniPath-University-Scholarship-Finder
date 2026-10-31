@@ -49,6 +49,7 @@ export default async function ScholarshipDetailPage({ params }: PageProps) {
         </div>
 
         <p className="text-sm text-slate-700 leading-relaxed">{scholarship.description}</p>
+        {scholarship.verificationStatus !== "verified" && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-950">Sample catalogue entry — funding, eligibility, and dates are not verified for a current intake. Confirm every detail with the official provider before applying.</p>}
 
         {/* Breakdown Card */}
         <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
@@ -60,14 +61,14 @@ export default async function ScholarshipDetailPage({ params }: PageProps) {
           <div>
             <span className="text-slate-500 font-medium block">Annual Living Stipend:</span>
             <span className="font-bold text-emerald-700">
-              {scholarship.stipendAmountAnnual ? formatCurrency(scholarship.stipendAmountAnnual, scholarship.currency) : "Covered in full"}
+              {scholarship.verificationStatus === "verified" ? (scholarship.stipendAmountAnnual ? formatCurrency(scholarship.stipendAmountAnnual, scholarship.currency) : "Covered in full") : "Confirm with provider"}
             </span>
           </div>
 
           <div>
             <span className="text-slate-500 font-medium block">Application Deadline:</span>
             <span className="font-bold text-amber-900 flex items-center gap-1 mt-0.5">
-              <Calendar className="w-3.5 h-3.5" /> {formatDate(scholarship.applicationDeadline)}
+              <Calendar className="w-3.5 h-3.5" /> {scholarship.verificationStatus === "verified" ? formatDate(scholarship.applicationDeadline) : "Confirm with provider"}
             </span>
           </div>
         </div>
