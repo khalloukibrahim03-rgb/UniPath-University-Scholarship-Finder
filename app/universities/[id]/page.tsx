@@ -9,11 +9,12 @@ import { MapPin, Globe, GraduationCap, Calendar, CheckCircle2, ArrowLeft, Bookma
 import { formatCurrency } from "@/lib/utils";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function UniversityDetailPage({ params }: PageProps) {
-  const university = DataService.getUniversityById(params.id);
+export default async function UniversityDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const university = DataService.getUniversityById(id);
 
   if (!university) {
     notFound();
