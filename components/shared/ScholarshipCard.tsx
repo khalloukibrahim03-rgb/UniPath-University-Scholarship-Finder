@@ -18,7 +18,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship })
       <CardHeader>
         <div className="flex items-start justify-between gap-2 mb-2">
           <Badge variant="secondary" className="bg-amber-100 text-amber-900 border-amber-200">
-            {scholarship.coverageType}
+            {scholarship.verificationStatus === "verified" ? scholarship.coverageType : `Sample · ${scholarship.coverageType}`}
           </Badge>
           <SourceBadge
             status={scholarship.verificationStatus}
@@ -54,7 +54,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship })
             <div className="flex items-center justify-between text-xs text-slate-700">
               <span className="font-medium">Annual Stipend:</span>
               <span className="font-semibold text-emerald-700">
-                {formatCurrency(scholarship.stipendAmountAnnual, scholarship.currency)}
+                {scholarship.verificationStatus === "verified" ? formatCurrency(scholarship.stipendAmountAnnual, scholarship.currency) : "Confirm with provider"}
               </span>
             </div>
           )}
@@ -64,7 +64,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship })
               <Calendar className="w-3.5 h-3.5 text-amber-700" /> Deadline:
             </span>
             <span className="font-semibold text-amber-900">
-              {formatDate(scholarship.applicationDeadline)}
+              {scholarship.verificationStatus === "verified" ? formatDate(scholarship.applicationDeadline) : "Confirm with provider"}
             </span>
           </div>
         </div>

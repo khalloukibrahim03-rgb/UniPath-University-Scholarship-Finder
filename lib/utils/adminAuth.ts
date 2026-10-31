@@ -1,41 +1,39 @@
 import { NextRequest } from "next/server";
 
-export const PRIMARY_ADMIN_EMAIL = "ibrahimkhallouki2@gmail.com";
-
+/**
+ * Admin routes are protected by a server-side secret in every environment.
+ * Configure ADMIN_SECRET and (optionally) ADMIN_EMAIL in the deployment environment.
+ * Never accept a client-supplied passkey as a development authorization bypass.
+ */
 export function isAuthorizedAdminEmail(email?: string | null): boolean {
-  if (!email || typeof email !== "string") return false;
-  const configuredAdminEmail = (process.env.ADMIN_EMAIL || PRIMARY_ADMIN_EMAIL).toLowerCase();
+  const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (!configuredAdminEmail || !email || typeof email !== "string") return false;
   return email.trim().toLowerCase() === configuredAdminEmail;
 }
 
 export function isAuthorizedAdmin(req: NextRequest): boolean {
   const adminSecret = process.env.ADMIN_SECRET;
-  const authHeader = req.headers.get("x-admin-secret") || req.headers.get("authorization");
-  const adminEmailHeader = req.headers.get("x-admin-email");
-
-  // Rule 1: Email whitelisting check
-  if (adminEmailHeader && !isAuthorizedAdminEmail(adminEmailHeader)) {
+  if (!adminSecret || adminSecret.length < 32) {
+    console.error("ADMIN_SECRET must be configured with at least 32 characters.");
     return false;
   }
 
-  // Rule 2: Require authorization header
-  if (!authHeader) {
-    return false;
+  const authorization = req.headers.get("authorization") || "";
+  const secretHeader = req.headers.get("x-admin-secret") || "";
+  const providedToken = authorization.startsWith("Bearer ")
+    ? authorization.slice(7).trim()
+    : secretHeader.trim();
+
+  if (!providedToken || providedToken.length !== adminSecret.length) return false;
+
+  // Constant-time comparison avoids leaking how many leading characters matched.
+  let mismatch = 0;
+  for (let i = 0; i < adminSecret.length; i += 1) {
+    mismatch |= adminSecret.charCodeAt(i) ^ providedToken.charCodeAt(i);
   }
+  if (mismatch !== 0) return false;
 
-  const providedToken = authHeader.startsWith("Bearer ") ? authHeader.replace("Bearer ", "").trim() : authHeader.trim();
-
-  // Rule 3: If ADMIN_SECRET environment variable is configured, match strictly
-  if (adminSecret) {
-    return providedToken === adminSecret;
-  }
-
-  // Rule 4: Production security requirement - ADMIN_SECRET must be configured
-  if (process.env.NODE_ENV === "production") {
-    console.error("ADMIN_SECRET environment variable is not set in production.");
-    return false;
-  }
-
-  // Rule 5: Development fallback requiring a non-empty passkey header
-  return providedToken.length >= 8;
+  const emailHeader = req.headers.get("x-admin-email");
+  if (emailHeader && !isAuthorizedAdminEmail(emailHeader)) return false;
+  return true;
 }

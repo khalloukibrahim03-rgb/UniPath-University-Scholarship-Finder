@@ -36,12 +36,12 @@ export default function ApplicationDashboardPage() {
           </div>
           <h1 className="text-3xl font-black text-blue-950">Student Application Tracker</h1>
           <p className="text-sm text-slate-600">
-            Track your saved program applications, document checklists, and upcoming deadlines in one place.
+            Preview the application checklist experience. Your changes are temporary until account-based storage is connected.
           </p>
         </div>
       </div>
 
-      {/* Grid of Saved Applications */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">\n        <strong>Preview mode:</strong> this tracker currently uses sample application data in your browser session. Sign-in and persistent, private application storage are not enabled yet.\n      </div>\n\n      {/* Grid of Saved Applications */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {applications.map((app) => {
           const completedTasksCount = app.tasks.filter((t) => t.isCompleted).length;

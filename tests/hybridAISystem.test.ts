@@ -1,91 +1,92 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ResearchAgentService } from "@/lib/services/researchAgent";
 import { AIGuidanceService } from "@/lib/services/aiGuidance";
 import { DataService } from "@/lib/services/dataService";
 import { isAuthorizedAdmin } from "@/lib/utils/adminAuth";
 import { NextRequest } from "next/server";
 
-describe("Server-Side Administrative Authorization", () => {
-  it("should reject requests without authorization headers", () => {
-    const unauthReq = new NextRequest("http://localhost:3000/api/admin/research-tasks");
-    expect(isAuthorizedAdmin(unauthReq)).toBe(false);
+describe("Server-side administrative authorization", () => {
+  const originalSecret = process.env.ADMIN_SECRET;
+  beforeEach(() => { process.env.ADMIN_SECRET = "unipath-secure-admin-key-2026-with-strong-entropy"; });
+  afterEach(() => {
+    if (originalSecret === undefined) delete process.env.ADMIN_SECRET;
+    else process.env.ADMIN_SECRET = originalSecret;
   });
 
-  it("should accept requests with valid admin secret header", () => {
-    const authReq = new NextRequest("http://localhost:3000/api/admin/research-tasks", {
-      headers: { "x-admin-secret": "unipath-secure-admin-key-2026" },
+  it("rejects requests without authorization headers", () => {
+    expect(isAuthorizedAdmin(new NextRequest("http://localhost:3000/api/admin/research-tasks"))).toBe(false);
+  });
+
+  it("accepts a valid configured admin secret", () => {
+    const req = new NextRequest("http://localhost:3000/api/admin/research-tasks", {
+      headers: { "x-admin-secret": process.env.ADMIN_SECRET! },
     });
-    expect(isAuthorizedAdmin(authReq)).toBe(true);
+    expect(isAuthorizedAdmin(req)).toBe(true);
   });
 });
 
-describe("System A — UniPath Research Agent & Review Queue", () => {
-  it("should create a research task and stage a proposed record with claim-level evidence", async () => {
+describe("System A — research queue safety", () => {
+  it("creates a pending task without inventing sources or evidence", async () => {
     const task = await ResearchAgentService.executeTask({
-      instruction: "Research Moroccan engineering schools (ENSIAS, EMI, EHTP) computer science programs",
+      instruction: "Research Moroccan engineering schools and their current admission requirements",
       targetInstitution: "ENSIAS Rabat",
       targetCountry: "Morocco",
     });
 
-    expect(task.status).toBe("completed");
+    expect(task.status).toBe("pending");
     expect(task.logs?.length).toBeGreaterThan(0);
-    expect(task.proposedRecords?.length).toBeGreaterThan(0);
-
-    const proposed = task.proposedRecords?.[0];
-    expect(proposed?.reviewStatus).toBe("pending_review");
-    expect(proposed?.verificationStatus).toBe("PARTIALLY_VERIFIED");
-    expect(proposed?.claimEvidences.length).toBeGreaterThan(0);
-
-    const claim = proposed?.claimEvidences[0];
-    expect(claim?.sourceUrl).toContain("admissions");
-    expect(claim?.evidenceExcerpt).toBeDefined();
+    expect(task.logs?.some((log) => log.message.includes("not configured"))).toBe(true);
+    expect(task.proposedRecords).toHaveLength(1);
+    expect(task.proposedRecords?.[0].reviewStatus).toBe("pending_review");
+    expect(task.proposedRecords?.[0].verificationStatus).toBe("UNVERIFIED");
+    expect(task.proposedRecords?.[0].claimEvidences).toHaveLength(0);
   });
 
-  it("should approve proposed record and publish it to public DataService catalog", () => {
+  it("does not publish a record merely because an admin approves it", () => {
     const records = ResearchAgentService.getProposedRecords({ reviewStatus: "pending_review" });
     expect(records.length).toBeGreaterThan(0);
 
-    const recordToApprove = records[0];
-    const approved = ResearchAgentService.reviewProposedRecord(recordToApprove.id, "approve");
+    const candidate = records[0];
+    const approved = ResearchAgentService.reviewProposedRecord(candidate.id, "approve");
 
-    expect(approved?.reviewStatus).toBe("approved");
-    expect(approved?.verificationStatus).toBe("VERIFIED");
+    expect(approved?.reviewStatus).toBe("deferred");
+    expect(approved?.verificationStatus).not.toBe("VERIFIED");
     expect(approved?.reviewedAt).toBeDefined();
-
-    // Verify record is published in public DataService directory
-    const published = DataService.getUniversityById(recordToApprove.id);
-    expect(published).toBeDefined();
-    expect(published?.name).toBe(approved?.proposedData.name);
+    expect(approved?.rejectionReason).toContain("verified source evidence");
+    expect(DataService.getUniversityById(candidate.id)).toBeUndefined();
   });
 
-  it("should reject proposed record with rejection reason", () => {
+  it("rejects a proposal with a recorded reason", () => {
     const task = ResearchAgentService.getTasks()[0];
-    if (task.proposedRecords && task.proposedRecords.length > 0) {
-      const recordToReject = task.proposedRecords[0];
-      const rejected = ResearchAgentService.reviewProposedRecord(recordToReject.id, "reject", "Missing official source URL");
+    const candidate = task.proposedRecords?.[0];
+    if (!candidate) throw new Error("Expected a staged research proposal");
 
-      expect(rejected?.reviewStatus).toBe("rejected");
-      expect(rejected?.verificationStatus).toBe("REJECTED");
-      expect(rejected?.rejectionReason).toContain("Missing official source");
-    }
+    const rejected = ResearchAgentService.reviewProposedRecord(
+      candidate.id,
+      "reject",
+      "Missing current official source evidence"
+    );
+    expect(rejected?.reviewStatus).toBe("rejected");
+    expect(rejected?.verificationStatus).toBe("REJECTED");
+    expect(rejected?.rejectionReason).toContain("Missing current official source");
   });
 });
 
-describe("System B — Public Grounded Student AI Assistant", () => {
-  it("should provide grounded guidance with result classification for Moroccan engineering query", async () => {
+describe("System B — conservative student guidance", () => {
+  it("does not turn unverified demo catalogue data into eligibility advice", async () => {
     const res = await AIGuidanceService.generateGuidance({
       query: "What are Moroccan engineering school admission rules for ENSIAS and UM6P?",
     });
 
-    expect(res.classification).toBe("Matches Documented Criteria");
-    expect(res.answerMarkdown).toContain("Moroccan Higher Education");
-    expect(res.citedSources.length).toBeGreaterThan(0);
-    expect(res.citedSources[0]).toHaveProperty("dataQualityState");
+    expect(res.classification).toBe("Insufficient Information");
+    expect(res.answerMarkdown).toContain("More information is needed");
+    expect(res.citedSources).toHaveLength(0);
+    expect(res.confidenceScore).toBeLessThan(0.5);
   });
 
-  it("should classify query as Insufficient Information when database lacks evidence", async () => {
+  it("classifies unknown queries as insufficient information", async () => {
     const res = await AIGuidanceService.generateGuidance({
-      query: "What are tuition fees for unknown university in outer space?",
+      query: "What are tuition fees for an unknown university in outer space?",
     });
 
     expect(res.classification).toBe("Insufficient Information");

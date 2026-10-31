@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master, feat/unipath-technical-foundation-9414686074726037842]
+  push:
+    branches: [main, master, feat/unipath-technical-foundation-9414686074726037842, feat/unipath-production-hardening]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Typecheck, unit tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Dependency security audit
+        run: |
+          npm audit --json > npm-audit.json || true
+          node -e 'const a=require("./npm-audit.json"); for (const [name,v] of Object.entries(a.vulnerabilities || {})) console.log(`${v.severity}: ${name} (direct: ${v.isDirect}) — ${v.range}`); console.log(`Total vulnerabilities: ${JSON.stringify(a.metadata?.vulnerabilities || {})}`);'
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build

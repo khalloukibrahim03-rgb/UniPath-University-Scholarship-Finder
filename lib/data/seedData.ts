@@ -1,8 +1,8 @@
 import { University, AcademicProgram, Scholarship, UserApplication } from "@/types";
 
 /**
- * DEMONSTRATION SEED DATA [CLEARLY LABELED DEMO DATA]
- * Note: These records contain structured demonstration data reflecting verified public admissions guidelines.
+ * DEMONSTRATION SEED DATA [DEMO ONLY — NOT VERIFIED FOR CURRENT INTAKES]
+ * Note: These records contain structured demonstration data for interface previews and tests; confirm every fact with official sources before relying on it.
  */
 
 export const DEMO_UNIVERSITIES: University[] = [
@@ -18,7 +18,7 @@ export const DEMO_UNIVERSITIES: University[] = [
     rankingNational: 2,
     rankingGlobal: 43,
     isPublic: true,
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-15",
     sourceUrl: "https://www.sorbonne-universite.fr/formation/admissions",
     programsCount: 3,
@@ -37,7 +37,7 @@ export const DEMO_UNIVERSITIES: University[] = [
         currency: "EUR",
         applicationOpenDate: "2024-11-01",
         applicationDeadline: "2025-02-15",
-        verificationStatus: "verified",
+        verificationStatus: "unverified",
         verifiedAt: "2024-10-15",
         sourceUrl: "https://maroc.campusfrance.org/dap-hors-dap-maroc",
         requirements: [
@@ -49,7 +49,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Equivalency of Moroccan Licence or French Licence (180 ECTS credits).",
             isMandatory: true,
             acceptedQualifications: ["Moroccan Licence Fundamental (Physique-Math-Info)", "French Licence Informatique"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           },
           {
             id: "req-sorbonne-2",
@@ -59,7 +59,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Minimum score of DELF B2 or TCF Tout Public with minimum 400 score.",
             isMandatory: true,
             acceptedQualifications: ["DELF B2 Certificate", "TCF C1 Certificate"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           },
           {
             id: "req-sorbonne-3",
@@ -69,7 +69,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Must apply through Etudes en France (Hors DAP procedure).",
             isMandatory: true,
             acceptedQualifications: ["Campus France Dossier ID"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           }
         ]
       }
@@ -87,7 +87,7 @@ export const DEMO_UNIVERSITIES: University[] = [
     rankingNational: 1,
     rankingGlobal: 28,
     isPublic: true,
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-18",
     sourceUrl: "https://www.tum.de/en/studies/application",
     programsCount: 2,
@@ -106,7 +106,7 @@ export const DEMO_UNIVERSITIES: University[] = [
         currency: "EUR",
         applicationOpenDate: "2024-11-15",
         applicationDeadline: "2025-05-31",
-        verificationStatus: "verified",
+        verificationStatus: "unverified",
         verifiedAt: "2024-10-18",
         sourceUrl: "https://www.tum.de/en/studies/degree-programs/software-engineering-master-of-science",
         requirements: [
@@ -118,7 +118,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Anabin certified equivalency (H+) with minimum 14/20 average.",
             isMandatory: true,
             acceptedQualifications: ["Moroccan Licence Fundamental / Ingénieur d'État"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           },
           {
             id: "req-tum-2",
@@ -128,7 +128,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "IELTS Academic or TOEFL iBT score required.",
             isMandatory: true,
             acceptedQualifications: ["IELTS 7.0+", "TOEFL iBT 95+"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           },
           {
             id: "req-tum-3",
@@ -138,7 +138,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Preliminary documentation clearance through uni-assist portal.",
             isMandatory: true,
             acceptedQualifications: ["uni-assist VPD Certificate"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           }
         ]
       }
@@ -156,7 +156,7 @@ export const DEMO_UNIVERSITIES: University[] = [
     rankingNational: 1,
     rankingGlobal: 450,
     isPublic: false,
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-20",
     sourceUrl: "https://www.um6p.ma/en/admissions",
     programsCount: 2,
@@ -175,7 +175,7 @@ export const DEMO_UNIVERSITIES: University[] = [
         currency: "MAD",
         applicationOpenDate: "2025-01-10",
         applicationDeadline: "2025-05-15",
-        verificationStatus: "verified",
+        verificationStatus: "unverified",
         verifiedAt: "2024-10-20",
         sourceUrl: "https://www.um6p.ma/en/school-computer-science",
         requirements: [
@@ -187,7 +187,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Mention Bien or Très Bien recommended in Baccalauréat National exam.",
             isMandatory: true,
             acceptedQualifications: ["Bac SM", "Bac PC", "Bac SVT"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           },
           {
             id: "req-um6p-2",
@@ -197,7 +197,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Selective competitive exam followed by an oral interview.",
             isMandatory: true,
             acceptedQualifications: ["Entrance Exam Selection"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           }
         ]
       }
@@ -215,7 +215,7 @@ export const DEMO_UNIVERSITIES: University[] = [
     rankingNational: 1,
     rankingGlobal: 16,
     isPublic: true,
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-12",
     sourceUrl: "https://xyz.tsinghua.edu.cn/en/admissions",
     programsCount: 1,
@@ -234,7 +234,7 @@ export const DEMO_UNIVERSITIES: University[] = [
         currency: "CNY",
         applicationOpenDate: "2024-10-15",
         applicationDeadline: "2025-03-01",
-        verificationStatus: "verified",
+        verificationStatus: "unverified",
         verifiedAt: "2024-10-12",
         sourceUrl: "http://gradadmission.tsinghua.edu.cn",
         requirements: [
@@ -246,7 +246,7 @@ export const DEMO_UNIVERSITIES: University[] = [
             description: "Recognized Bachelor degree transcript with official translation.",
             isMandatory: true,
             acceptedQualifications: ["Licence Fundamental", "Diplôme d'Ingénieur"],
-            verificationStatus: "verified"
+            verificationStatus: "unverified"
           }
         ]
       }
@@ -268,7 +268,7 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     eligibleDegrees: ["Master", "Doctorate"],
     applicationDeadline: "2025-01-10",
     applicationUrl: "https://www.campusfrance.org/en/eiffel-scholarship-program-of-excellence",
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-22",
     sourceUrl: "https://www.campusfrance.org/fr/le-programme-de-bourses-d-excellence-eiffel",
     description: "Prestigious full-ride scholarship for top international students applying to French higher education institutions. Covers monthly allowance (€1,181/mo for Master, €1,700/mo for PhD), return airfare, national health insurance, and cultural activities.",
@@ -292,7 +292,7 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     eligibleDegrees: ["Master"],
     applicationDeadline: "2025-03-31",
     applicationUrl: "https://www.daad.de/en/study-and-research-in-germany/scholarships/",
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-20",
     sourceUrl: "https://www.daad.de/en/study-and-research-in-germany/scholarships/scholarship-database/",
     description: "Provides monthly stipend (€934/month), health insurance coverage, travel allowance, and study allowance for international students completing a Master's degree in Germany.",
@@ -315,7 +315,7 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     eligibleDegrees: ["Bachelor", "Master", "Doctorate"],
     applicationDeadline: "2025-03-15",
     applicationUrl: "https://www.campuschina.org",
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-18",
     sourceUrl: "https://www.campuschina.org/content/details3_74776.html",
     description: "Full scholarship covering 100% university tuition, free university accommodation, comprehensive medical insurance, and monthly living allowance (3,000 RMB/month for Master's).",
@@ -339,7 +339,7 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     eligibleDegrees: ["Bachelor", "Master"],
     applicationDeadline: "2025-07-31",
     applicationUrl: "https://www.minhaty.ma",
-    verificationStatus: "verified",
+    verificationStatus: "unverified",
     verifiedAt: "2024-10-25",
     sourceUrl: "https://www.minhaty.ma",
     description: "National financial support grant for Moroccan Baccalauréat holders entering public universities or institutes. Disbursed in 3 quarterly installments.",
